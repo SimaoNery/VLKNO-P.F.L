@@ -1,6 +1,6 @@
 % File for menus displays and logistics
 
-:- [game].
+:- [controllers].
 
 % Main Menu
 main_menu(GameConfig) :-
@@ -22,34 +22,25 @@ menu_options(1, GameConfig) :-
     set_player_names(GameConfig, NewGameConfig),
 
     % Initialize the game state
-    initial_state(GameConfig, GameState),
+    initial_state(NewGameConfig, GameState),
 
     %Display the initial game state
-    display_game(GameState),
+    display_game(GameState).
 
-    %Starts the game Loop
-    game_loop(GameState).
 
 menu_options(2, GameConfig) :- 
-    clear_screen,
     set_game_type(GameConfig, NewGameConfig),
-    clear_screen,
     main_menu(NewGameConfig).
 
 menu_options(3, GameConfig) :- 
-    clear_screen,
     set_difficulty_level(GameConfig, NewGameConfig),
-    clear_screen,
     main_menu(NewGameConfig).
 
 menu_options(4, GameConfig) :-
-    clear_screen,
     set_board_size(GameConfig, NewGameConfig),
-    clear_screen,
     main_menu(NewGameConfig).
 
 menu_options(5, GameConfig) :-
-    clear_screen,
     write('========== VLKNO GAME RULES =========='), nl, nl,
     write('VLKNO is a 2-player abstract strategy game played on a 5x5 grid covered in 25 stackable stones.'), nl,
     write('Players each have 2 pawns in their color, which are placed on stones in diagonally opposite corners of the grid at the start of the game.'), nl, nl,
@@ -58,7 +49,7 @@ menu_options(5, GameConfig) :-
     write('    - Pick up a stone from the smallest unoccupied stack on the board, except the one you just came from (if there\'s a tie for shortest stack, you choose which one).'), nl,
     write('    - Place it on any unoccupied stack of 1+ stones except the one you just came from.'), nl, nl,
     write('You win when your opponent cannot complete each step of their turn.'), nl, nl,
-    clear_screen,
+
     main_menu(GameConfig).
 
 menu_options(_, GameConfig) :- 
@@ -73,7 +64,7 @@ set_player_names(GameConfig, NewGameConfig) :-
     read(Player1Name),
 
     write('Enter Player2 Name: '), nl,
-    read(Player2Name)
+    read(Player2Name),
 
     GameConfig = game_config(BoardSize, Player1Type, Player2Type, _, _, AiLevel),
     NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, AiLevel).
@@ -147,9 +138,3 @@ validate_board_size(6).
 validate_board_size(_) :-
     write('Invalid Input! Please enter "4.", "5." or "6."'), nl, 
     fail.
-
-% Function to clear the screen
-clear_screen :-
-    nl, nl, nl, nl, nl, nl, nl, nl, nl, nl, 
-    nl, nl, nl, nl, nl, nl, nl, nl, nl, nl,
-    nl, nl, nl, nl, nl, nl, nl, nl, nl, nl.
