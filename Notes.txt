@@ -2,25 +2,6 @@ To run the code:
     -> consult('game.pl').
     -> play(0).
 
-play/0 => Acess to Game Menu
-    - Define Game Type(H/H, H/PC, PC/H, PC/PC)
-    - Difficulty Levels to be used by AI (Other Possible Parameters)
-    - Start The Game
-
-initial_state(+GameConfig, -GameState) 
-    => Recives the desired game configuration
-        - Type of each player
-        - Board Size
-        - Optional Rules
-        - Player Names
-        - Extra Info
-    
-    => Returns initial game state
-        - Describes snapshot of the current configuration such as:
-            -> Board configuration(list of lists)
-            -> Current Player (One Playing Next)
-            -> Required Information
-
 display_game(+GameSTate) 
     => Receives the current game state and prints the game state to the terminal.
         - Try to make it the more appaling and intuitive
