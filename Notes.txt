@@ -1,0 +1,79 @@
+To run the code:
+    -> consult('game.pl').
+    -> play(0).
+
+play/0 => Acess to Game Menu
+    - Define Game Type(H/H, H/PC, PC/H, PC/PC)
+    - Difficulty Levels to be used by AI (Other Possible Parameters)
+    - Start The Game
+
+initial_state(+GameConfig, -GameState) 
+    => Recives the desired game configuration
+        - Type of each player
+        - Board Size
+        - Optional Rules
+        - Player Names
+        - Extra Info
+    
+    => Returns initial game state
+        - Describes snapshot of the current configuration such as:
+            -> Board configuration(list of lists)
+            -> Current Player (One Playing Next)
+            -> Required Information
+
+display_game(+GameSTate) 
+    => Receives the current game state and prints the game state to the terminal.
+        - Try to make it the more appaling and intuitive
+        - Make it flexible, work with more than one board size
+        - Coordinates start at (1, 1) at the lower left corner
+
+move(+GameState, +Move, -NewGameState)
+    => Receives Current game state and move to be executed
+    => Executes validation of the move
+    => Returns new game state after the move is executed 
+
+valid_moves(+GameState, -ListofMoves) 
+    => Receives the current game state
+    => Returns a list of all the possible moves 
+
+game_over(+GameState, -Winner)
+    => Receives the current game state
+    => Verifies if the game is over
+    => If the game is over identify the winner or draw
+    => Shouldnt Print anything to the terminal 
+
+value(+GameSTate, +Player, -Value)
+    => Receives the current game state
+    => Returns a value measuring how good/bad the current game state is to the given Player 
+
+choose_move(+GameState, +Level, -Move)
+    => Recives the current game state
+    => Returns the move chosen by the computer player
+        - Level 1 = Return a random valid move
+        - Level 2 = Return best play at the time (Greedy Algorithm) considering the evaluation of the game state as determined by the value/3 predicate
+        - For human players it should interact with the user to read the move
+
+
+-> You cannot use assert or retract to store / manipulate game configuration or game state information. If you need information from the game configuration, 
+you can include it in the game state term
+
+-> GameStateource code should follow established conventions for code quality and organization. Use meaningful names for predicates and arguments. 
+-> Try to write code that looks declarative and avoid using imperative-looking constructions (e.g., if-then-else clauses). 
+-> Try to write efficient code (e.g., using tail recursion when possible)
+
+-> All source code must be properly commented. Each of the predicates listed above should have extended comments describing the strategy used to implement it
+
+
+VLKNO GAME RULES:
+
+VLKNO is a 2 player abstract strategy game played on a 5x5 grid covered in 25 stackable stones.
+
+Players each have 2 pawns in their color, which are placed on stones in diagonally opposite corners of the grid at the start of the game.
+
+Each turn, you do the following actions:
+
+    Move either of your pawns one space in any direction to a stack of 1+ stones that's the same height, or 1 stone taller, or 1 stone shorter than yours.
+    Pick up a stone from the smallest unoccupied stack on the board, except the one you just came from (if there's a tie for shortest stack, you choose which one).
+    Place it on any unoccupied stack of 1+ stones except the one you just came from.
+
+You win when your opponent cannot complete each step of their turn.
