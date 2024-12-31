@@ -24,8 +24,8 @@ menu_options(1, GameConfig) :-
     % Initialize the game state
     initial_state(NewGameConfig, GameState),
 
-    %Display the initial game state
-    display_game(GameState).
+    % Start the Game Loop
+    game_loop(GameState).
 
 
 menu_options(2, GameConfig) :- 

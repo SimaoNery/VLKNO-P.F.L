@@ -2,20 +2,9 @@ To run the code:
     -> consult('game.pl').
     -> play(0).
 
-display_game(+GameSTate) 
-    => Receives the current game state and prints the game state to the terminal.
-        - Try to make it the more appaling and intuitive
-        - Make it flexible, work with more than one board size
-        - Coordinates start at (1, 1) at the lower left corner
-
-move(+GameState, +Move, -NewGameState)
-    => Receives Current game state and move to be executed
-    => Executes validation of the move
-    => Returns new game state after the move is executed 
-
-valid_moves(+GameState, -ListofMoves) 
-    => Receives the current game state
-    => Returns a list of all the possible moves 
+move(+GameState, +Move, -NewGameState). This predicate is responsible for move validation and
+execution, receiving the current game state and the move to be executed, and (if the move is valid)
+returns the new game state after the move is executed.
 
 game_over(+GameState, -Winner)
     => Receives the current game state
@@ -23,6 +12,8 @@ game_over(+GameState, -Winner)
     => If the game is over identify the winner or draw
     => Shouldnt Print anything to the terminal 
 
+
+--- AI ---
 value(+GameSTate, +Player, -Value)
     => Receives the current game state
     => Returns a value measuring how good/bad the current game state is to the given Player 
@@ -33,12 +24,12 @@ choose_move(+GameState, +Level, -Move)
         - Level 1 = Return a random valid move
         - Level 2 = Return best play at the time (Greedy Algorithm) considering the evaluation of the game state as determined by the value/3 predicate
         - For human players it should interact with the user to read the move
-
+--- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
 -> You cannot use assert or retract to store / manipulate game configuration or game state information. If you need information from the game configuration, 
 you can include it in the game state term
 
--> GameStateource code should follow established conventions for code quality and organization. Use meaningful names for predicates and arguments. 
+-> Source code should follow established conventions for code quality and organization. Use meaningful names for predicates and arguments. 
 -> Try to write code that looks declarative and avoid using imperative-looking constructions (e.g., if-then-else clauses). 
 -> Try to write efficient code (e.g., using tail recursion when possible)
 
