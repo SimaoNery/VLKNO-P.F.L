@@ -19,7 +19,7 @@ main_menu(GameConfig) :-
 % Main Menu Options
 menu_options(1, GameConfig) :- 
     % Set Human Player Names
-    set_player_names(GameConfig, NewGameConfig),
+    set_player_names(GameConfig, NewGameConfig), nl,
 
     % Initialize the game state
     initial_state(NewGameConfig, GameState),

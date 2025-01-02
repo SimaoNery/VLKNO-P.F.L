@@ -1,49 +1,50 @@
-:- use_module(library(lists))
+:- use_module(library(lists)).
 
 % Runs the game between the players while it isn't Game Over
-game_loop(game_state(Board, CurrentPlayer, PlayersInfo, PlayersPositions)) :-
+game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)) :- 
     % Display the current game state
-    display_game(game_state(Board, CurrentPlayer, PlayersInfo, PlayersPositions)),
+    display_game(game_state(Board, PlayerName, PlayersInfo, PlayersPositions)),
 
     % TO DO: Checks if the game is over
 
-    % Ask Player For a Move
-    write(CurrentPlayer), write('It\'s Your Turn!'), nl, nl,
+    write('Current player: '), write(PlayerName), nl,
 
     % Show the player moves he can do
-    valid_moves(game_state(Board, CurrentPlayer, PlayersInfo, PlayersPositions), ValidMoves),
-    write('This are your valid moves: '), nl, 
-    write(ValidMoves), nl,
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+    write('This are your valid moves => '), 
+    write(ValidMoves), nl, nl,
 
-    write('Enter Your Move: '), nl,
-    read(Move),
+    write('Choose your move: '), read(Move), nl, nl,
+
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
-    move(game_state(Board, CurrentPlayer, PlayersInfo, PlayerPositions), Move, NewGameState).
+    move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Move, NewGameState),
 
     % TO DO: Give a value to the current state
-    
-    % Return to the loop
 
     % TO DO: See How To Handle AI
+    
+    % Start the Loop All Over Again
+    game_loop(NewGameState).
+
 
 % Initialize the GameState based on the GameConfig given
 initial_state(
         game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, _), 
-        game_state(Board, CurrentPlayer, PlayerInfo, [Player1Name-(1,1), Player2Name-(BoardSize, BoardSize)])) :-
+        game_state(Board, (Player1-Player1Name), PlayerInfo, [Player1Name-(1,1), Player2Name-(BoardSize, BoardSize)])) :-
 
     % Build the Board
     build_board(BoardSize, BoardSize, Board),
 
     % Set Player Info
-    PlayerInfo = [Player1Type-Player1Name-, Player2Type-Player2Name],
+    PlayerInfo = [Player1Type-Player1Name, Player2Type-Player2Name].
 
 % ---Board Building---------------------------------------------------------
 
 % Builds the initial board with the desired size (all stacks size 1)
 build_board(0, _, []). % Base Case
 build_board(RowSize, ColSize, [Row | Board]) :-
-    build_row(ColSize, Row), % Dispplays a row at a time
+    build_row(ColSize, Row), % Displays a row at a time
     NewRowSize is RowSize - 1,
     build_board(NewRowSize, ColSize, Board).
 
@@ -58,22 +59,21 @@ build_row(Size, [1 | Row]) :-
 % ---Board Displaying-------------------------------------------------------
 
 % Displays the current game state to the terminal (PlayerInfo and Board)
-display_game(game_state(Board, CurrentPlayer, PlayerInfo, PlayerPositions)) :-
-    display_board(Board, PlayerPositions), nl, nl,nl, % Display Board
-    write('Current Player: '), write(CurrentPlayer), nl. % Say who turn is
+display_game(game_state(Board, CurrentPlayerName, PlayerInfo, PlayerPositions)) :-
+    display_board(Board, PlayerPositions), nl, nl,nl. % Display Board
 
 % Displays the board
 display_board(Board, PlayerPositions) :-
     length(Board, BoardLength),
     display_rows(Board, BoardLength, PlayerPositions), % Starts from the last row
-    write('   _ _ _ _ _ _ _ _ _'), nl,
+    write('   _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _'), nl,
     write('    '),
     display_columns(1, BoardLength).
 
 % Displays the number of the columns above the board
 display_columns(Current, End) :-
     Current =< End,
-    write(' '), write(Current), write(' '),
+    write('   '), write(Current), write('   '),
     Next is Current + 1,
     display_columns(Next, End).
 
@@ -88,22 +88,22 @@ display_rows([Row | Rest], RowNum, PlayerPositions) :-
     display_rows(Rest, NextRowNum, PlayerPositions).
 
 % Display "P1" if this is Player1 tile
-display_tiles([_ | Rest], RowNum, ColNum, [Player-(RowNum, ColNum) | Player2Pos]) :-
-    write('[P1]'),
+display_tiles([_ | Rest], RowNum, ColNum, [Player1-(ColNum, RowNum), Player2-(X, Y)]) :-   
+    write('['), write(Player1), write(']'),
     NextColNum is ColNum + 1,
-    display_tiles(Rest, RowNum, NextColNum, [Player-(RowNum, ColNum) | Player2Pos]).
+    display_tiles(Rest, RowNum, NextColNum, [Player1-(ColNum, RowNum), Player2-(X, Y)]).
 
 % Display "P2" if this is Player2 tile
-display_tiles([_ | Rest], RowNum, ColNum, [Player1Pos | Player-(RowNum, ColNum)]) :-
-    write('[P2]'),
+display_tiles([_ | Rest], RowNum, ColNum, [Player1-(X, Y), Player2-(ColNum, RowNum)]) :-
+    write('['), write(Player2), write(']'),
     NextColNum is ColNum + 1,
-    display_tiles(Rest, RowNum, NextColNum, [Player1Pos | Player-(RowNum, ColNum)]).
+    display_tiles(Rest, RowNum, NextColNum,[Player1-(X, Y), Player2-(ColNum, RowNum)]).
 
 % Display regular stack of tiles 
-display_tiles([Stone | Rest], RowNum, ColNum, PlayerPositions) :-
-    write('['), write(Stone), write(']'),
+display_tiles([Stone | Rest], RowNum, ColNum, [Player1-(X1, Y1), Player2-(X2, Y2)]) :-
+    write('[  '), write(Stone), write('  ] '),
     NextColNum is ColNum + 1,
-    display_tiles(Rest, RowNum, NextColNum, PlayerPositions).
+    display_tiles(Rest, RowNum, NextColNum,[Player1-(X1, Y1), Player2-(X2, Y2)]).
 
 display_tiles([], _, _, _). % Base Case
 %---------------------------------------------------------------------------
@@ -112,30 +112,31 @@ display_tiles([], _, _, _). % Base Case
 % --- Player Actions -------------------------------------------------------
 
 % Changes the game state accordingly to a player new move
-move(game_state(Board, CurrentPlayer, PlayersInfo, PlayersPosition),
+move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions),
      Move,
-     game_state(NewBoard, NextPlayer, PlayersInfo, NewPlayersPositions)) :-
-    
+     game_state(NewBoard, NextPlayer, PlayersInfo, UpdatedPlayersPositions)) :-
+
     % Validate the Move
-    valid_moves(game_state(Board, CurrentPlayer, PlayersINfo, PlayersPositions), ValidMoves),
-    member(Move, ValidMoves) % If the move is in valid moves it's valid
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+    member(Move, ValidMoves), % If the move is in valid moves it's valid
 
     % Execute Move
-    execute_move(Board, CurrentPlayer, PlayersPositions, Move, NewBoard, NewPlayersPositions),
-    % Switch players
-    switch_players(CurrentPlayer, PlayersInfo, NextPlayer).
+    execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions),
+
+    % Switch Players
+    switch_players((CurrentPlayer-PlayerName), NewPlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions).
 
 
 % Executes a valid move
-executes_move(Board, CurrentPlayer, PlayersPositions, Move, NewBoard, NewPlayersPositions) :-
+execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions) :-
     % Get the coordinates for the players piece
-    get_piece_position(CurrentPlayer, PlayersPositions, CurrentPosition),
-
+    get_piece_position((CurrentPlayer-PlayerName), PlayersPositions, CurrentPosition),
+    
     % Translate the move into new coordinates
     translate_move(Move, CurrentPosition, FinalPosition),
 
     % Move the piece
-    update_piece_coordinates(CurrentPlayer, FinalPosition, PlayersPositions, NewPlayersPositions),
+    update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
 
     % Changes a stone of location based on player choice
     pick_and_place_stone(Board, CurrentPosition, FinalPosition, NewBoard).
@@ -149,45 +150,37 @@ pick_and_place_stone(Board, CurrentPosition, FinalPosition, NewBoard) :-
     % Ask the player where to place it
     write('Choose the coordinates to place the stone!'), nl,
     write('     =>X: '), nl,
-    read(X)
+    read(X),
     write('     =>Y: '), nl,
     read(Y),
 
     % Ensure the coordinates are valid
-    validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y)),
+    validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayerPositions),
 
     % Update the stacks on the board
     move_stone(Board, SmallestStackPosition, (X, Y), NewBoard).
 
 
-% Switch Players
-switch_players(Player1, [Player1-_, Player2-_], Player2).
-switch_players(Player2, [Player1-_, Player2-_], Player1).
-
 %------------------------------------------------------------------------------------------
 
 % --- Auxiliary Move Predicates ---------------------------------------------------------------------
 
-% Creates a list with all the valid moves (This calls validate_move())
-valid_moves(game_state(Board, CurrentPlayer, _, PlayersPositions), ValidMoves) :-
-    get_piece_position(CurrentPlayer, PlayersPositions, CurrentPosition),
-    findall(Move, validate_move(Board, CurrentPlayer, PlayersPositions, Move), ValidMoves).
-
-
-% Validate the move to be done
-validate_move(Board, CurrentPlayer, PlayersPositions, Direction) :-
-    % Get the coordinates for the players piece
-    get_piece_position(CurrentPlayer, PlayersPositions, CurrentPosition),
-
-    % Translate the move into new coordinates
-    translate_move(Move, CurrentPosition, FinalPosition),
-
-    % Validate final position
-    validate_final_position(Board, CurrentPosition, FinalPosition, PlayersPositions).
+% Creates a list with all the valid moves
+valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), ValidMoves) :-
+    get_piece_position((CurrentPlayer-PlayerName), PlayersPositions, CurrentPosition),
+    findall(
+        Move,
+        (
+            translate_move(Move, CurrentPosition, FinalPosition),
+            validate_final_position(Board, CurrentPosition, FinalPosition, PlayersPositions)
+        ),
+        RawMoves
+    ),
+    sort(RawMoves, ValidMoves).
 
 % Gets the coordinates of the current players piece
-get_piece_position(Player, [Player-(X, Y) | _], (X, Y)).
-get_piece_position(Player, [_ | Player-(X, Y)], (X, Y)).
+get_piece_position((Player-PlayerName), [PlayerName-(X, Y) | _], (X, Y)).
+get_piece_position((Player-PlayerName), [_ | PlayerName-(X, Y)], (X, Y)).
 
 % Translates the move choosen by the player to the coordinates resulting of that move
 translate_move(up, (X, Y), (X, Y1)) :- Y1 is Y + 1.
@@ -213,7 +206,7 @@ validate_final_position(Board, CurrentPosition, FinalPosition, PlayersPosition) 
 
 % Ensure the piece will not move out of the board
 is_within_bounds(Board, (X, Y)) :-
-    length(Boad, N),
+    length(Board, N),
     X > 0, X =< N,
     Y > 0, Y =< N.
 
@@ -230,23 +223,59 @@ get_height(Board, (X, Y), Height) :-
     nth1(X, Board, Row), % Gets X Row
     nth1(Y, Row, Height). % Gets Y Element (Height in that Position)
 
-% Ensure the position is not occupied
-is_occupied((X, Y), [_-(X, Y) | _]).
-is_occupied((X, Y), [_ | _-(X, Y)]).
+% Check if a position is occupied by any player
+is_occupied((X, Y), [PlayerName-(X, Y) | _]) :- !.
+is_occupied((X, Y), [_ | PlayerName-(X, Y)]) :- !.
 
 
-% Update piece coordinates with the coordinates after the valid move
-update_piece_coordinates(Player, NewPosition, [Player-_| _], [Player-NewPosition| _]).
-update_piece_coordinates(Player, NewPosition, [_ | Player-_], [_ | Player-NewPosition]).
+update_piece_coordinates((Player-PlayerName), NewPosition, [PlayerName-OldPosition | Player2Pos], [PlayerName-NewPosition| Player2Pos]).
+update_piece_coordinates((Player-PlayerName), NewPosition, [Player1Pos | PlayerName-OldPosition], [Player1Pos | PlayerName-NewPosition]).
 %------------------------------------------------------------------------------------------
 
 % --- Auxiliary Stone Movement Predicates ----------------------------------------------------------------------
-
+% Finds the smallest stack in the map
 find_smallest_stack(Board, CurrentPosition, SmallestStackPosition) :-
+% Gets all places heights and guarantees its different from where the player came from
+    findall(
+        Height-Position,
+        (
+            get_height(Board, Position, Height), 
+            Position \= CurrentPosition
+        ),
+        Stacks
+    ),
+    keysort(Stacks, SortedStacks), % Sorts the stacks to get the one with the smallest amount of stones
+    SortedStacks = [(_-SmallestStackPosition)|_].
 
+validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayersPositions) :-
+    is_within_bounds(Board, (X, Y)),
+    (X, Y) \= CurrentPosition,
+    (X, Y) \= FinalPosition,
+    is_occupied((X, Y), PlayersPositions).
 
-validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y)) :-
+move_stone(Board, (X1, Y1), (X2, Y2), NewBoard):-
+    get_height(Board, (X1, Y1), H1),
+    get_height(Board, (X2, Y2), H2),
 
+    % Decrement the height at the source position
+    UpdatedH1 is H1 - 1,
+    update_board(Board, (X1, Y1), UpdatedH1, TempBoard),
 
-move_stone(Board, SmallestStackPosition, (X, Y), NewBoard):-
+    % Increment the height at the destination position
+    UpdatedH2 is H2 + 1,
+    update_board(TempBoard, (X2, Y2), UpdatedH2, NewBoard).
+
+% Update the board at a specific position
+update_board(Board, (X, Y), NewValue, UpdatedBoard) :-
+    length(Board, BoardLength),            % Get the number of rows
+    InvertedY is BoardLength - Y + 1,      % Invert the Y-coordinate
+    nth1(InvertedY, Board, Row),           % Access row
+    nth1(X, Row, _, RestOfRow),            % Access and replace the column in the row
+    nth1(X, NewRow, NewValue, RestOfRow),  % Create the updated row
+    nth1(InvertedY, Board, _, RestOfBoard),% Replace the old row in the board
+    nth1(InvertedY, UpdatedBoard, NewRow, RestOfBoard). % Construct the updated board
+
 %------------------------------------------------------------------------------------------
+
+% Switch Players
+switch_players((Player1Type-Player1Name), [Player1Name-(X1, Y1), Player2Name-(X2, Y2)], [Player1Type-Player1Name, Player2Type-Player2Name], (Player2Type-Player2Name), [Player2Name-(X2, Y2), Player1Name-(X1, Y1)]).

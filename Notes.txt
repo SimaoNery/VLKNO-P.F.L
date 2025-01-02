@@ -2,10 +2,6 @@ To run the code:
     -> consult('game.pl').
     -> play(0).
 
-move(+GameState, +Move, -NewGameState). This predicate is responsible for move validation and
-execution, receiving the current game state and the move to be executed, and (if the move is valid)
-returns the new game state after the move is executed.
-
 game_over(+GameState, -Winner)
     => Receives the current game state
     => Verifies if the game is over
