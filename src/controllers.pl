@@ -1,20 +1,31 @@
 :- use_module(library(lists)).
 
+
 % Runs the game between the players while it isn't Game Over
 game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)) :- 
     % Display the current game state
+    write('Current game state: '), nl,
+    write(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)), nl, nl,
+
     display_game(game_state(Board, PlayerName, PlayersInfo, PlayersPositions)),
 
     % TO DO: Checks if the game is over
 
     write('Current player: '), write(PlayerName), nl,
+    write('Current player type: '), write(CurrentPlayer), nl, nl,
 
-    % Show the player moves he can do
-    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
-    write('This are your valid moves => '), 
-    write(ValidMoves), nl, nl,
-
-    write('Choose your move: '), read(Move), nl, nl,
+    (CurrentPlayer = h ->
+        (valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+         write('These are your valid moves => '), 
+         write(ValidMoves), nl, nl,
+         write('Choose your move: '), read(Move), nl, nl)
+    ; 
+        % Otherwise, execute alternative actions for non-'h' player
+        (write('AI thinking...'), nl,
+         choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 1, Move),
+         write('AI chose: '), write(Move), nl, !,
+         read(_)) % Wait for user input
+    ),
 
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
@@ -31,7 +42,7 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 % Initialize the GameState based on the GameConfig given
 initial_state(
         game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, _), 
-        game_state(Board, (Player1-Player1Name), PlayerInfo, [Player1Name-(1,1), Player2Name-(BoardSize, BoardSize)])) :-
+        game_state(Board, (Player1Type-Player1Name), PlayerInfo, [Player1Name-(1,1), Player2Name-(BoardSize, BoardSize)])) :-
 
     % Build the Board
     build_board(BoardSize, BoardSize, Board),
@@ -279,3 +290,11 @@ update_board(Board, (X, Y), NewValue, UpdatedBoard) :-
 
 % Switch Players
 switch_players((Player1Type-Player1Name), [Player1Name-(X1, Y1), Player2Name-(X2, Y2)], [Player1Type-Player1Name, Player2Type-Player2Name], (Player2Type-Player2Name), [Player2Name-(X2, Y2), Player1Name-(X1, Y1)]).
+
+
+% --- Bot Moves ---------------------------------------------------------------------------
+choose_move(GameState, 1, Move) :-
+    valid_moves(GameState, ValidMoves),
+    length(ValidMoves, Length),
+    random(0, Length, Index),         
+    nth0(Index, ValidMoves, Move).
