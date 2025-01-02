@@ -2,7 +2,7 @@
 :- [menus].
 
 % Access Game Menu
-play(0) :-
+play :-
     % Default Game Configuration => (BoardSize, Player1 Type, Player2 Type, Player1 Name, Player2 Name, AI Difficulty Level)
     DefaultConfig = game_config(5, Human, Human, 'Player1', 'Player2', 1),
 

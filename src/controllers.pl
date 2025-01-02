@@ -11,7 +11,7 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
     % Show the player moves he can do
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
-    write('This are your valid moves => '), 
+    write('These are your valid moves => '), 
     write(ValidMoves), nl, nl,
 
     write('Choose your move: '), read(Move), nl, nl,
@@ -66,14 +66,14 @@ display_game(game_state(Board, CurrentPlayerName, PlayerInfo, PlayerPositions)) 
 display_board(Board, PlayerPositions) :-
     length(Board, BoardLength),
     display_rows(Board, BoardLength, PlayerPositions), % Starts from the last row
-    write('   _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _'), nl,
+    write('   _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _'), nl,
     write('    '),
     display_columns(1, BoardLength).
 
 % Displays the number of the columns above the board
 display_columns(Current, End) :-
     Current =< End,
-    write('   '), write(Current), write('   '),
+    write('   '), write(Current), write('    '),
     Next is Current + 1,
     display_columns(Next, End).
 
@@ -89,13 +89,13 @@ display_rows([Row | Rest], RowNum, PlayerPositions) :-
 
 % Display "P1" if this is Player1 tile
 display_tiles([_ | Rest], RowNum, ColNum, [Player1-(ColNum, RowNum), Player2-(X, Y)]) :-   
-    write('['), write(Player1), write(']'),
+    write('['), write(Player1), write('] '),
     NextColNum is ColNum + 1,
     display_tiles(Rest, RowNum, NextColNum, [Player1-(ColNum, RowNum), Player2-(X, Y)]).
 
 % Display "P2" if this is Player2 tile
 display_tiles([_ | Rest], RowNum, ColNum, [Player1-(X, Y), Player2-(ColNum, RowNum)]) :-
-    write('['), write(Player2), write(']'),
+    write('['), write(Player2), write('] '),
     NextColNum is ColNum + 1,
     display_tiles(Rest, RowNum, NextColNum,[Player1-(X, Y), Player2-(ColNum, RowNum)]).
 
@@ -114,7 +114,7 @@ display_tiles([], _, _, _). % Base Case
 % Changes the game state accordingly to a player new move
 move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions),
      Move,
-     game_state(NewBoard, NextPlayer, PlayersInfo, UpdatedPlayersPositions)) :-
+     game_state(NewBoard, NextPlayer, NewPlayersInfo, UpdatedPlayersPositions)) :-
 
     % Validate the Move
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
@@ -124,14 +124,14 @@ move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions
     execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions),
 
     % Switch Players
-    switch_players((CurrentPlayer-PlayerName), NewPlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions).
+    switch_players((CurrentPlayer-PlayerName), NewPlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions, NewPlayersInfo).
 
 
 % Executes a valid move
 execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions) :-
     % Get the coordinates for the players piece
     get_piece_position((CurrentPlayer-PlayerName), PlayersPositions, CurrentPosition),
-    
+
     % Translate the move into new coordinates
     translate_move(Move, CurrentPosition, FinalPosition),
 
@@ -139,13 +139,14 @@ execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard
     update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
 
     % Changes a stone of location based on player choice
-    pick_and_place_stone(Board, CurrentPosition, FinalPosition, NewBoard).
+    pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard).
 
 
 % Will choose a stone and change its location based on user input
-pick_and_place_stone(Board, CurrentPosition, FinalPosition, NewBoard) :-
+pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
     % Determine the smallest unoccupied stack (excluding the previous position)
     find_smallest_stack(Board, CurrentPosition, SmallestStackPosition),
+    write('Smallest Stack: '), write(SmallestStackPosition), nl, nl,
 
     % Ask the player where to place it
     write('Choose the coordinates to place the stone!'), nl,
@@ -215,13 +216,16 @@ is_valid_height(Board, (X1, Y1), (X2, Y2)) :-
     get_height(Board, (X1, Y1), H1),
     get_height(Board, (X2, Y2), H2),
 
+    H2 > 0,
     Diff is abs(H1 - H2),
     Diff =< 1.
 
 % Gets the height of a stack at a given position
 get_height(Board, (X, Y), Height) :-
-    nth1(X, Board, Row), % Gets X Row
-    nth1(Y, Row, Height). % Gets Y Element (Height in that Position)
+    length(Board, BoardLength),       
+    InvertedY is BoardLength - Y + 1,
+    nth1(InvertedY, Board, Row),
+    nth1(X, Row, Height). 
 
 % Check if a position is occupied by any player
 is_occupied((X, Y), [PlayerName-(X, Y) | _]) :- !.
@@ -235,17 +239,36 @@ update_piece_coordinates((Player-PlayerName), NewPosition, [Player1Pos | PlayerN
 % --- Auxiliary Stone Movement Predicates ----------------------------------------------------------------------
 % Finds the smallest stack in the map
 find_smallest_stack(Board, CurrentPosition, SmallestStackPosition) :-
-% Gets all places heights and guarantees its different from where the player came from
+    length(Board, BoardLength),
+
+    % Generate all valid positions on the board
     findall(
-        Height-Position,
+        (X, Y),
+        (between(1, BoardLength, X), between(1, BoardLength, Y)),
+        AllPositions
+    ),
+
+    % Gets all places heights and guarantees its different from where the player came from
+    findall(
+        Height-(X, Y),
         (
-            get_height(Board, Position, Height), 
-            Position \= CurrentPosition
+            member((X, Y), AllPositions),
+            (X, Y) \= CurrentPosition,
+            get_height(Board, (X, Y), Height),
+            Height > 0
         ),
         Stacks
     ),
     keysort(Stacks, SortedStacks), % Sorts the stacks to get the one with the smallest amount of stones
     SortedStacks = [(_-SmallestStackPosition)|_].
+
+% Will generate all positions between the numbers (Shoudl be include by default, but add problems with that)
+between(Lower, Upper, Lower) :- 
+    Lower =< Upper.
+between(Lower, Upper, X) :-
+    Lower < Upper,
+    Next is Lower + 1,
+    between(Next, Upper, X).
 
 validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayersPositions) :-
     is_within_bounds(Board, (X, Y)),
@@ -278,4 +301,9 @@ update_board(Board, (X, Y), NewValue, UpdatedBoard) :-
 %------------------------------------------------------------------------------------------
 
 % Switch Players
-switch_players((Player1Type-Player1Name), [Player1Name-(X1, Y1), Player2Name-(X2, Y2)], [Player1Type-Player1Name, Player2Type-Player2Name], (Player2Type-Player2Name), [Player2Name-(X2, Y2), Player1Name-(X1, Y1)]).
+switch_players((Player1-Player1Name), [Player1Name-(X1, Y1), Player2Name-(X2, Y2)], 
+               [Player1Type-Player1Name, Player2Type-Player2Name], (Player2Type-Player2Name), 
+               [Player2Name-(X2, Y2), Player1Name-(X1, Y1)], [Player2Type-Player2Name, Player1Type-Player1Name]).
+
+switch_players(_, _, _, _, _) :- write('Fallback clause called'), fail.
+
