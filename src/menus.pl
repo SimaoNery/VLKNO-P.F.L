@@ -25,8 +25,14 @@ menu_options(1, GameConfig) :-
     initial_state(NewGameConfig, GameState),
 
     % Start the Game Loop
-    game_loop(GameState).
+    game_loop(GameState),
 
+    write('Wan\'t to play again?'), nl, nl,
+    write('     => yes'), nl,
+    write('     => no'), nl,
+
+    read(PlayAgain),
+    handle_play_again(PlayAgain, 1, GameConfig).
 
 menu_options(2, GameConfig) :- 
     set_game_type(GameConfig, NewGameConfig),
@@ -69,6 +75,15 @@ set_player_names(GameConfig, NewGameConfig) :-
     GameConfig = game_config(BoardSize, Player1Type, Player2Type, _, _, AiLevel),
     NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, AiLevel).
 
+% Handle player's choice to play again
+handle_play_again(yes, MenuOption, GameConfig) :-
+    menu_options(MenuOption, GameConfig).
+
+handle_play_again(no, _, _) :-
+    nl, write('Thanks for playing! Goodbye!'), nl.
+
+handle_play_again(_, MenuOption, GameConfig) :-
+    nl, write('Thanks for playing! Goodbye!'), nl.
 
 % Set game type
 set_game_type(GameConfig, NewGameConfig) :-
