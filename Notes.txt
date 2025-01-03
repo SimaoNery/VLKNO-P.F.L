@@ -1,12 +1,6 @@
 To run the code:
     -> consult('game.pl').
-    -> play(0).
-
-game_over(+GameState, -Winner)
-    => Receives the current game state
-    => Verifies if the game is over
-    => If the game is over identify the winner or draw
-    => Shouldnt Print anything to the terminal 
+    -> play.
 
 
 --- AI ---

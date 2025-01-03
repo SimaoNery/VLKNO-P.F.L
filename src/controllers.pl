@@ -1,11 +1,18 @@
 :- use_module(library(lists)).
 
 % Runs the game between the players while it isn't Game Over
+game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)) :-
+    % Check if the game is over
+    game_over(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Winner),
+
+    % Show End Game Results
+    write_game_results(Winner).
+
+% If the game isn't over proceed with the normal loop
 game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)) :- 
     % Display the current game state
+    nl, nl, 
     display_game(game_state(Board, PlayerName, PlayersInfo, PlayersPositions)),
-
-    % TO DO: Checks if the game is over
 
     write('Current player: '), write(PlayerName), nl,
 
@@ -14,7 +21,7 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
     write('These are your valid moves => '), 
     write(ValidMoves), nl, nl,
 
-    write('Choose your move: '), read(Move), nl, nl,
+    write('Choose your move: '), read(Move), nl,
 
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
@@ -182,8 +189,8 @@ valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), 
     sort(RawMoves, ValidMoves).
 
 % Gets the coordinates of the current players piece
-get_piece_position((Player-PlayerName), [PlayerName-(X, Y) | _], (X, Y)).
-get_piece_position((Player-PlayerName), [_ | PlayerName-(X, Y)], (X, Y)).
+get_piece_position((Player-PlayerName), [PlayerName-(X, Y), Player2Pos], (X, Y)).
+get_piece_position((Player-PlayerName), [Player1Pos, PlayerName-(X, Y)], (X, Y)).
 
 % Translates the move choosen by the player to the coordinates resulting of that move
 translate_move(up, (X, Y), (X, Y1)) :- Y1 is Y + 1.
@@ -335,4 +342,36 @@ switch_players((Player1-Player1Name), [Player1Name-(X1, Y1), Player2Name-(X2, Y2
                [Player2Name-(X2, Y2), Player1Name-(X1, Y1)], [Player2Type-Player2Name, Player1Type-Player1Name]).
 
 switch_players(_, _, _, _, _) :- write('Fallback clause called'), fail.
+%------------------------------------------------------------------------------------------
 
+% --- Game Over Functions ---------------------------------------------------------------------------
+
+% Checks if the game is over and identifies the winner or a draw
+game_over(game_state(Board, CurrentPlayer, PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)]), Player2Name) :-
+    % Check if Player 1 cannot move but Player 2 can
+    \+ player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])),
+    player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])).
+
+game_over(game_state(Board, CurrentPlayer, PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)]), Player1Name) :-
+    % Check if Player 2 cannot move but Player 1 can
+    player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])), nl,
+    \+ player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])).
+
+game_over(Board, CurrentPlayer, PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)], draw) :-
+    % Check if neither player can move
+    \+ player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])),
+    \+ player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])).
+
+% Determines if a player can move their piece
+player_can_move(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions)) :-
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), ValidMoves),
+    ValidMoves \= [].
+
+
+write_game_results(Winner) :-
+    Winner \= draw,
+    nl, write(Winner), write(' just WON the game! CONGRATULATIONS!!'), nl, nl.
+
+write_game_results(draw) :-
+    nl, write('The game is a draw!'), nl.
+%------------------------------------------------------------------------------------------
