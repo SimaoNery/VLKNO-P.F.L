@@ -152,7 +152,7 @@ execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard
 % Will choose a stone and change its location based on user input
 pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
     % Determine the smallest unoccupied stack (excluding the previous position)
-    find_smallest_stack(Board, CurrentPosition, SmallestStackPositions, PlayersPositions),
+    find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPositions, PlayersPositions),
 
     % Select smallest stack in SmallestStackPositions
     select_smallest_stack_position(SmallestStackPositions, SmallestStackPosition),
@@ -246,7 +246,7 @@ update_piece_coordinates((Player-PlayerName), NewPosition, [Player1Pos | PlayerN
 
 % --- Auxiliary Stone Movement Predicates ----------------------------------------------------------------------
 % Finds the smallest stack in the map
-find_smallest_stack(Board, CurrentPosition, SmallestStackPositions, PlayersPositions) :-
+find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPositions, PlayersPositions) :-
     length(Board, BoardLength),
 
     % Generate all valid positions on the board
@@ -262,6 +262,7 @@ find_smallest_stack(Board, CurrentPosition, SmallestStackPositions, PlayersPosit
         (
             member((X, Y), AllPositions),
             (X, Y) \= CurrentPosition,
+            (X, Y) \= FinalPosition,
             get_height(Board, (X, Y), Height),
             \+ is_occupied((X, Y), PlayersPositions),
             Height > 0
@@ -291,6 +292,7 @@ validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayersP
     (X, Y) \= FinalPosition,
     is_occupied((X, Y), PlayersPositions).
 
+move_stone(Board, (X, Y), (X, Y), Board). % In the case the coords are the same, leave it unchanged
 move_stone(Board, (X1, Y1), (X2, Y2), NewBoard):-
     get_height(Board, (X1, Y1), H1),
     get_height(Board, (X2, Y2), H2),
