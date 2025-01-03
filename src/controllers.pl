@@ -195,15 +195,17 @@ translate_move(down_right, (X, Y), (X1, Y1)) :- X1 is X + 1, Y1 is Y - 1.
 
 
 % Validates the position to where the piece wants to move
-validate_final_position(Board, CurrentPosition, FinalPosition, PlayersPosition) :-
+validate_final_position(Board, CurrentPosition, FinalPosition, PlayersPositions) :-
     % Ensure the piece will not move out of the board
     is_within_bounds(Board, FinalPosition),
 
     % Ensure the height difference is acceptable
     is_valid_height(Board, CurrentPosition, FinalPosition),
 
+    write(PlayersPositions), nl,
+
     % Ensure the position is not occupied
-    is_occupied(FinalPosition, PlayersPositions).
+    \+ is_occupied(FinalPosition, PlayersPositions).
 
 % Ensure the piece will not move out of the board
 is_within_bounds(Board, (X, Y)) :-
@@ -228,9 +230,8 @@ get_height(Board, (X, Y), Height) :-
     nth1(X, Row, Height). 
 
 % Check if a position is occupied by any player
-is_occupied((X, Y), [PlayerName-(X, Y) | _]) :- !.
-is_occupied((X, Y), [_ | PlayerName-(X, Y)]) :- !.
-
+is_occupied((X, Y), [Player1Pos, Player2Name-(X, Y)]).
+is_occupied((X, Y), [Player1Name-(X, Y) | Player2Pos]).
 
 update_piece_coordinates((Player-PlayerName), NewPosition, [PlayerName-OldPosition | Player2Pos], [PlayerName-NewPosition| Player2Pos]).
 update_piece_coordinates((Player-PlayerName), NewPosition, [Player1Pos | PlayerName-OldPosition], [Player1Pos | PlayerName-NewPosition]).
