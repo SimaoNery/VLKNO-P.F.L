@@ -145,8 +145,10 @@ execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard
 % Will choose a stone and change its location based on user input
 pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
     % Determine the smallest unoccupied stack (excluding the previous position)
-    find_smallest_stack(Board, CurrentPosition, SmallestStackPosition),
-    write('Smallest Stack: '), write(SmallestStackPosition), nl, nl,
+    find_smallest_stack(Board, CurrentPosition, SmallestStackPositions, PlayersPositions),
+
+    % Select smallest stack in SmallestStackPositions
+    select_smallest_stack_position(SmallestStackPositions, SmallestStackPosition),
 
     % Ask the player where to place it
     write('Choose the coordinates to place the stone!'), nl,
@@ -202,8 +204,6 @@ validate_final_position(Board, CurrentPosition, FinalPosition, PlayersPositions)
     % Ensure the height difference is acceptable
     is_valid_height(Board, CurrentPosition, FinalPosition),
 
-    write(PlayersPositions), nl,
-
     % Ensure the position is not occupied
     \+ is_occupied(FinalPosition, PlayersPositions).
 
@@ -239,7 +239,7 @@ update_piece_coordinates((Player-PlayerName), NewPosition, [Player1Pos | PlayerN
 
 % --- Auxiliary Stone Movement Predicates ----------------------------------------------------------------------
 % Finds the smallest stack in the map
-find_smallest_stack(Board, CurrentPosition, SmallestStackPosition) :-
+find_smallest_stack(Board, CurrentPosition, SmallestStackPositions, PlayersPositions) :-
     length(Board, BoardLength),
 
     % Generate all valid positions on the board
@@ -256,12 +256,19 @@ find_smallest_stack(Board, CurrentPosition, SmallestStackPosition) :-
             member((X, Y), AllPositions),
             (X, Y) \= CurrentPosition,
             get_height(Board, (X, Y), Height),
+            \+ is_occupied((X, Y), PlayersPositions),
             Height > 0
         ),
         Stacks
     ),
     keysort(Stacks, SortedStacks), % Sorts the stacks to get the one with the smallest amount of stones
-    SortedStacks = [(_-SmallestStackPosition)|_].
+    SortedStacks = [SmallestStackPosition-_|_],
+
+    findall(
+        (X, Y),
+        member(SmallestHeight-(X, Y), SortedStacks),
+        SmallestStackPositions
+    ).
 
 % Will generate all positions between the numbers (Shoudl be include by default, but add problems with that)
 between(Lower, Upper, Lower) :- 
@@ -299,6 +306,27 @@ update_board(Board, (X, Y), NewValue, UpdatedBoard) :-
     nth1(InvertedY, Board, _, RestOfBoard),% Replace the old row in the board
     nth1(InvertedY, UpdatedBoard, NewRow, RestOfBoard). % Construct the updated board
 
+
+% Select a position when there is only one option
+select_smallest_stack_position([SinglePosition], SmallestStackPositions) :-
+    write('Smallest Stack Position: '), write(SmallestStackPosition), nl.
+
+% Allow the user to choose when there are multiple options
+select_smallest_stack_position(SmallestStackPositions, SmallestStackPosition) :-
+    write('Choose the coordinates from where to pick the stone!'), nl,
+
+    write_positions(SmallestStackPositions, 1),
+
+    write('Enter the index of the coordinates you want: '), nl,
+    read(Coords),
+    nth1(Coords, SmallestStackPositions, SmallestStackPosition).
+
+% Writes all the positions
+write_positions([], _).
+write_positions([(X, Y)|Rest], Index) :-
+    write(Index), write(': ('), write(X), write(', '), write(Y), write(')'), nl,
+    NextIndex is Index + 1,
+    write_positions(Rest, NextIndex).
 %------------------------------------------------------------------------------------------
 
 % Switch Players
