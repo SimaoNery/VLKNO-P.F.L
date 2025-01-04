@@ -297,7 +297,7 @@ find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPosition
         Stacks
     ),
     keysort(Stacks, SortedStacks), % Sorts the stacks to get the one with the smallest amount of stones
-    SortedStacks = [SmallestStackPosition-_|_],
+    SortedStacks = [SmallestHeight-_|_],
 
     findall(
         (X, Y),
@@ -317,7 +317,10 @@ validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayersP
     is_within_bounds(Board, (X, Y)),
     (X, Y) \= CurrentPosition,
     (X, Y) \= FinalPosition,
-    is_occupied((X, Y), PlayersPositions).
+    is_occupied((X, Y), PlayersPositions),
+    
+    get_height(Board, (X, Y), Height),
+    Height > 0.
 
 move_stone(Board, (X, Y), (X, Y), Board). % In the case the coords are the same, leave it unchanged
 move_stone(Board, (X1, Y1), (X2, Y2), NewBoard):-
