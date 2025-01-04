@@ -15,24 +15,11 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
     nl, nl, 
     display_game(game_state(Board, PlayerName, PlayersInfo, PlayersPositions)),
 
-    write('Current player: '), write(PlayerName), nl,
-    write('Current player type: '), write(CurrentPlayer), nl, nl,
-
-    (CurrentPlayer = h ->
-        (valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
-         write('These are your valid moves => '), 
-         write(ValidMoves), nl, nl,
-         write('Choose your move: '), read(Move), nl, nl)
-    ; 
-        % Otherwise, execute alternative actions for non-'h' player
-        (write('AI thinking...'), nl,
-         choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 1, Move),
-         write('AI chose: '), write(Move), nl, !)
-    ),
-
+    choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), CurrentPlayer, Move),
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
     move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Move, NewGameState),
+
 
     % TO DO: Give a value to the current state
 
@@ -153,15 +140,7 @@ execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard
     update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
 
     % Changes a stone of location based on player choice
-    (CurrentPlayer = h ->
-        (pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard))
-
-    ; 
-        % Otherwise, execute alternative actions for non-'h' player
-        (write('AI thinking...'), nl,
-         choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 1, Move),
-         write('AI chose: '), write(Move), nl, !)
-    ),
+    pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard).
 
 
 % Will choose a stone and change its location based on user input
@@ -180,7 +159,7 @@ pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, Ne
     read(Y),
 
     % Ensure the coordinates are valid
-    validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayerPositions),
+    validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayersPositions),
 
     % Update the stacks on the board
     move_stone(Board, SmallestStackPosition, (X, Y), NewBoard).
@@ -305,7 +284,7 @@ validate_stone_placement(Board, CurrentPosition, FinalPosition, (X, Y), PlayersP
     is_within_bounds(Board, (X, Y)),
     (X, Y) \= CurrentPosition,
     (X, Y) \= FinalPosition,
-    is_occupied((X, Y), PlayersPositions).
+    \+ is_occupied((X, Y), PlayersPositions).
 
 move_stone(Board, (X, Y), (X, Y), Board). % In the case the coords are the same, leave it unchanged
 move_stone(Board, (X1, Y1), (X2, Y2), NewBoard):-
@@ -362,13 +341,59 @@ switch_players(_, _, _, _, _) :- write('Fallback clause called'), fail.
 %------------------------------------------------------------------------------------------
 
 % --- Bot Moves ---------------------------------------------------------------------------
+
+choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 0, Move) :-
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+    write('These are your valid moves => '), 
+    write(ValidMoves), nl, nl,
+    write('Choose your move: '), read(Move), nl, nl.
+
 choose_move(GameState, 1, Move) :-
+    write('AI thinking...'), nl,
     valid_moves(GameState, ValidMoves),
     length(ValidMoves, Length),
     random(0, Length, Index),         
-    nth0(Index, ValidMoves, Move).
+    nth0(Index, ValidMoves, Move),
+    write('AI chose: '), write(Move), nl, !.
 
 
+
+choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 2, BestMove) :-
+    write('AI thinking...'), nl,
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+    
+    % Evaluate each valid move
+    findall(Value-Move,
+            (
+                member(Move, ValidMoves),
+                
+                % Get the coordinates for the player's piece
+                get_piece_position((CurrentPlayer-PlayerName), PlayersPositions, CurrentPosition),
+                
+                % Translate the move into new coordinates
+                translate_move(Move, CurrentPosition, FinalPosition),
+                
+                % Move the piece
+                update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
+                
+                % Evaluate the new game state
+                value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, NewPlayersPositions), CurrentPlayerName, Value),
+            ),
+            MovesWithValues),
+    
+    % Sort moves by their values
+    keysort(MovesWithValues, SortedMovesWithValues),
+    
+    % Select the move with the highest value
+    last(SortedMovesWithValues, _-BestMove),
+    
+    write('AI chose: '), write(BestMove), nl, !.
+
+
+
+value(GameState, Player, Value) :-
+    valid_moves(GameState, ValidMoves),
+    length(ValidMoves, Value).
 
 
 %------------------------------------------------------------------------------------------

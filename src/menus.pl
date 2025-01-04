@@ -89,14 +89,16 @@ handle_play_again(_, MenuOption, GameConfig) :-
 set_game_type(GameConfig, NewGameConfig) :-
   write('========== Game Type =========='), nl, nl,
     write('Enter Player1 Type: '), nl, 
-    write('     => Human(h.)'), nl,
-    write('     => Computer(pc.)'), nl,
+    write('     => Human(0.)'), nl,
+    write('     => Computer Easy(1.)'), nl,
+    write('     => Computer Hard(2.)'), nl,
     read(Player1Type),
     validate_player_type(Player1Type),
 
     write('Enter Player2 Type: '), nl, 
-    write('     => Human(h.)'), nl,
-    write('     => Computer(pc.)'), nl,
+    write('     => Human(0.)'), nl,
+    write('     => Computer Easy(1.)'), nl,
+    write('     => Computer Hard(2.)'), nl,
     read(Player2Type),
     validate_player_type(Player2Type),
 
@@ -105,10 +107,11 @@ set_game_type(GameConfig, NewGameConfig) :-
     NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, AiLevel).
 
 % Validate Input For Player Type
-validate_player_type(h).
-validate_player_type(pc).
+validate_player_type(0).
+validate_player_type(1).
+validate_player_type(2).
 validate_player_type(_) :-
-    write('Invalid Input! Please enter "h." or "pc."'), nl, fail.
+    write('Invalid Input! Please enter "0.", "1." or "2."'), nl, fail.
 
 
 % Set Difficulty Levels for AI
