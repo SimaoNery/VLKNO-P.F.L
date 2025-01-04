@@ -16,8 +16,11 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
     write('Current player: '), write(PlayerName), nl,
 
+    % In 2 pawn game mode, choose the piece
+    select_pawn(PlayerName, PlayersPositions, SelectedPawn),
+
     % Show the player moves he can do
-    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, ValidMoves),
     write('These are your valid moves => '), 
     write(ValidMoves), nl, nl,
 
@@ -25,7 +28,7 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
-    move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Move, NewGameState),
+    move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, Move, NewGameState),
     
     % Start the Loop All Over Again
     game_loop(NewGameState).
@@ -125,35 +128,49 @@ player_at_position(ColNum, RowNum, [_ | Rest], Player) :-
 
 % --- Player Actions -------------------------------------------------------
 
+% Selects a pawn to move
+select_pawn(PlayerName, PlayersPositions, SelectedPawn) :-
+    findall((X, Y), member(PlayerName-(X, Y), PlayersPositions), Pawns),
+    select_pawn_from_list(Pawns, SelectedPawn).
+
+% If there is only 1 pawn per player
+select_pawn_from_list([Pawn], Pawn).
+
+% For more than 1 pawn per player
+select_pawn_from_list(Pawns, SelectedPawn) :-
+    write('Enter the index of the pawn you want to move: '), nl,
+    write_positions(Pawns, 1),
+    read(Index), 
+    nth1(Index, Pawns, SelectedPawn).
+
+
 % Changes the game state accordingly to a player new move
 move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions),
-     Move,
-     game_state(NewBoard, NextPlayer, PlayersInfo, NewPlayersPositions)) :-
+    SelectedPawn,
+    Move,
+    game_state(NewBoard, NextPlayer, PlayersInfo, NewPlayersPositions)) :-
 
     % Validate the Move
-    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, ValidMoves),
     member(Move, ValidMoves), % If the move is in valid moves it's valid
 
     % Execute Move
-    execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions),
+    execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, SelectedPawn, Move, NewBoard, NewPlayersPositions),
 
     % Switch Players
     switch_players((CurrentPlayer-PlayerName), PlayersInfo, NextPlayer).
 
 
 % Executes a valid move
-execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions) :-
-    % Get the coordinates for the players piece
-    get_piece_position(PlayerName, PlayersPositions, CurrentPosition),
-
+execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, SelectedPawn, Move, NewBoard, NewPlayersPositions) :-
     % Translate the move into new coordinates
-    translate_move(Move, CurrentPosition, FinalPosition),
+    translate_move(Move, SelectedPawn, FinalPosition),
 
     % Move the piece
-    update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
+    update_piece_coordinates((CurrentPlayer-PlayerName), SelectedPawn, FinalPosition, PlayersPositions, NewPlayersPositions),
 
     % Changes a stone of location based on player choice
-    pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard).
+    pick_and_place_stone(Board, SelectedPawn, FinalPosition, PlayersPositions, NewBoard).
 
 
 % Will choose a stone and change its location based on user input
@@ -183,25 +200,16 @@ pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, Ne
 % --- Auxiliary Move Predicates ---------------------------------------------------------------------
 
 % Creates a list with all the valid moves
-valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), ValidMoves) :-
-    get_piece_position(PlayerName, PlayersPositions, CurrentPosition),
+valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), SelectedPawn, ValidMoves) :-
     findall(
         Move,
         (
-            translate_move(Move, CurrentPosition, FinalPosition),
-            validate_final_position(Board, CurrentPosition, FinalPosition, PlayersPositions)
+            translate_move(Move, SelectedPawn, FinalPosition),
+            validate_final_position(Board, SelectedPawn, FinalPosition, PlayersPositions)
         ),
         RawMoves
     ),
     sort(RawMoves, ValidMoves).
-
-% Base case: the player and piece position match
-get_piece_position(PlayerName, [PlayerName-(X, Y) | _], (X, Y)) :- !.
-
-% Recursive case: keep searching in the rest of the list
-get_piece_position(PlayerName, [_ | Rest], Position) :-
-    get_piece_position(PlayerName, Rest, Position).
-
 
 % Translates the move choosen by the player to the coordinates resulting of that move
 translate_move(up, (X, Y), (X, Y1)) :- Y1 is Y + 1.
@@ -256,11 +264,11 @@ is_occupied((X, Y), [_ | Rest]) :-
 
 
 % Base case: found the player whose position needs updating
-update_piece_coordinates((Player-PlayerName), NewPosition, [PlayerName-OldPosition | Rest], [PlayerName-NewPosition | Rest]) :- !.
+update_piece_coordinates((Player-PlayerName), SelectedPawn, NewPosition, [PlayerName-SelectedPawn | Rest], [PlayerName-NewPosition | Rest]) :- !.
 
 % Recursive case: keep checking the rest of the list
-update_piece_coordinates((Player-PlayerName), NewPosition, [OtherPlayer-OtherPosition | Rest], [OtherPlayer-OtherPosition | UpdatedRest]) :-
-    update_piece_coordinates((Player-PlayerName), NewPosition, Rest, UpdatedRest).
+update_piece_coordinates((Player-PlayerName), SelectedPawn, NewPosition, [OtherPlayer-OtherPosition | Rest], [OtherPlayer-OtherPosition | UpdatedRest]) :-
+    update_piece_coordinates((Player-PlayerName), SelectedPawn, NewPosition, Rest, UpdatedRest).
 %------------------------------------------------------------------------------------------
 
 % --- Auxiliary Stone Movement Predicates ----------------------------------------------------------------------
@@ -365,25 +373,34 @@ switch_players((CurrentPlayer-CurrentName), [Player1Type-Player1Name, Player2Typ
 % --- Game Over Functions ---------------------------------------------------------------------------
 
 % Checks if the game is over and identifies the winner or a draw
-game_over(game_state(Board, CurrentPlayer, PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)]), Player2Name) :-
-    % Check if Player 1 cannot move but Player 2 can
-    \+ player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])),
-    player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])).
-
-game_over(game_state(Board, CurrentPlayer, PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)]), Player1Name) :-
-    % Check if Player 2 cannot move but Player 1 can
-    player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])), nl,
-    \+ player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])).
-
-game_over(Board, CurrentPlayer, PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)], draw) :-
+game_over(game_state(Board, CurrentPlayer, [Player1-Player1Name, Player2-Player2Name], PlayersPositions), draw) :-
     % Check if neither player can move
-    \+ player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])),
-    \+ player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, [Player1Name-(X1, Y1), Player2Name-(X2, Y2)])).
+    \+ player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, PlayersPositions)),
+    \+ player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, PlayersPositions)).
+
+game_over(game_state(Board, CurrentPlayer, [Player1-Player1Name, Player2-Player2Name], PlayersPositions), Player2Name) :-
+    % Check if Player 1 cannot move but Player 2 can
+    \+ player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, PlayersPositions)),
+    player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, PlayersPositions)).
+
+game_over(game_state(Board, CurrentPlayer, [Player1-Player1Name, Player2-Player2Name], PlayersPositions), Player1Name) :-
+    % Check if Player 2 cannot move but Player 1 can
+    player_can_move(game_state(Board, (Player1-Player1Name), PlayersInfo, PlayersPositions)), nl,
+    \+ player_can_move(game_state(Board, (Player2-Player2Name), PlayersInfo, PlayersPositions)).
 
 % Determines if a player can move their piece
-player_can_move(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions)) :-
-    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), ValidMoves),
-    ValidMoves \= [].
+player_can_move(game_state(Board, (Player-PlayerName), _, PlayersPositions)) :-
+    findall(
+        Moves,
+        (
+            member(PlayerName-(X, Y), PlayersPositions), % Locate a pawn for the player
+            valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), (X, Y), Moves) % Get valid moves for this pawn
+        ),
+        CombinedMoves
+    ),
+    append(CombinedMoves, FlatList),
+    FlatList \= []. % At least one pawn must have valid moves
+
 
 
 write_game_results(Winner) :-
