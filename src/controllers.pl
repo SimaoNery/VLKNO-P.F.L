@@ -377,7 +377,7 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
                 update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
                 
                 % Evaluate the new game state
-                value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, NewPlayersPositions), CurrentPlayerName, Value),
+                value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, NewPlayersPositions), PlayerName, Value)
             ),
             MovesWithValues),
     
@@ -391,9 +391,13 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
 
 
 
-value(GameState, Player, Value) :-
-    valid_moves(GameState, ValidMoves),
-    length(ValidMoves, Value).
+value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), _, Value) :-
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
+    switch_players((CurrentPlayer-PlayerName), PlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions, UpdatedPlayersInfo),
+    valid_moves(game_state(Board, NextPlayer, UpdatedPlayersInfo, UpdatedPlayersPositions), NewValidMoves),
+    length(NewValidMoves, NewValue),
+    length(ValidMoves, OldValue),
+    Value is OldValue - NewValue.
 
 
 %------------------------------------------------------------------------------------------
