@@ -12,18 +12,17 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 % If the game isn't over proceed with the normal loop
 game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)) :- 
     % Display the current game state
+
+    write('It\'s '), write(PlayerName), write('\'s turn!'),
     nl, nl, 
     display_game(game_state(Board, PlayerName, PlayersInfo, PlayersPositions)),
 
-    choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), CurrentPlayer, Move),
+    choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), CurrentPlayer, Move), !,
+
+    write('Moving pawn...'), nl, nl,
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
     move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Move, NewGameState),
-
-
-    % TO DO: Give a value to the current state
-
-    % TO DO: See How To Handle AI
     
     % Start the Loop All Over Again
     game_loop(NewGameState).
@@ -121,6 +120,8 @@ move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
     member(Move, ValidMoves), % If the move is in valid moves it's valid
 
+    write('Executing move...'), nl, nl,
+
     % Execute Move
     execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions),
 
@@ -139,12 +140,14 @@ execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard
     % Move the piece
     update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
 
+    write('Picking and placing stone...'), nl, nl,
+
     % Changes a stone of location based on player choice
-    pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard).
+    pick_and_place_stone(Board, CurrentPlayer, CurrentPosition, FinalPosition, PlayersPositions, NewBoard).
 
 
 % Will choose a stone and change its location based on user input
-pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
+pick_and_place_stone(Board, 0, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
     % Determine the smallest unoccupied stack (excluding the previous position)
     find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPositions, PlayersPositions),
 
@@ -164,7 +167,54 @@ pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, Ne
     % Update the stacks on the board
     move_stone(Board, SmallestStackPosition, (X, Y), NewBoard).
 
+extract_second_elements([], []).
+extract_second_elements([_-Position | Rest], [Position | PositionsRest]) :-
+    extract_second_elements(Rest, PositionsRest).
 
+get_non_empty_positions(Board, Positions) :-
+    findall((X, Y),
+            (
+                nth1(Y, Board, Row),
+                nth1(X, Row, Height),
+                Height > 0
+            ),
+            Positions).
+
+in_exclude(ExcludePositions, X) :-
+    member(X, ExcludePositions).
+
+% Use exclude/3 to filter positions
+filter_positions(Positions, ExcludePositions, FilteredPositions) :-
+    exclude(in_exclude(ExcludePositions), Positions, FilteredPositions).
+    % Combine the predicates to get the desired positions
+
+get_valid_positions(Board, SmallestStackPosition, CurrentPosition, FinalPosition, PlayersPositions, ValidPositions) :-
+    get_non_empty_positions(Board, AllPositions),
+    extract_second_elements(PlayersPositions, PlayersPositionsList),
+    append([SmallestStackPosition, CurrentPosition, FinalPosition], PlayersPositionsList, ExcludePositions),
+    filter_positions(AllPositions, ExcludePositions, ValidPositions).
+
+pick_and_place_stone(Board, 1, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
+
+    write('AI thinking what stone to remove...'), nl,
+    % Determine the smallest unoccupied stack (excluding the previous position)
+    find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPositions, PlayersPositions),
+
+    % Randomly select a position to remove the stone
+    random_member(SmallestStackPosition, SmallestStackPositions),
+
+    write('AI chose: '), write(SmallestStackPosition), nl,
+    write('AI thinking where to place the stone...'), nl,
+
+    get_valid_positions(Board, SmallestStackPosition, CurrentPosition, FinalPosition, PlayersPositions, ValidPositions),
+
+    % Randomly select a position to place the stone
+    random_member(PlacePosition, ValidPositions),
+
+    write('AI chose: '), write(PlacePosition), nl,
+
+    % Update the stacks on the board
+    move_stone(Board, SmallestStackPosition, PlacePosition, NewBoard).
 %------------------------------------------------------------------------------------------
 
 % --- Auxiliary Move Predicates ---------------------------------------------------------------------
@@ -352,8 +402,7 @@ choose_move(GameState, 1, Move) :-
     write('AI thinking...'), nl,
     valid_moves(GameState, ValidMoves),
     length(ValidMoves, Length),
-    random(0, Length, Index),         
-    nth0(Index, ValidMoves, Move),
+    random_member(Move, ValidMoves),
     write('AI chose: '), write(Move), nl, !.
 
 
@@ -377,7 +426,9 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
                 update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
                 
                 % Evaluate the new game state
-                value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, NewPlayersPositions), PlayerName, Value)
+                value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, NewPlayersPositions), current, PositiveValue),
+                value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, NewPlayersPositions), other, NegativeValue),
+                Value is PositiveValue - NegativeValue
             ),
             MovesWithValues),
     
@@ -391,14 +442,14 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
 
 
 
-value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), _, Value) :-
+value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), current, Value) :-
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
-    switch_players((CurrentPlayer-PlayerName), PlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions, UpdatedPlayersInfo),
-    valid_moves(game_state(Board, NextPlayer, UpdatedPlayersInfo, UpdatedPlayersPositions), NewValidMoves),
-    length(NewValidMoves, NewValue),
-    length(ValidMoves, OldValue),
-    Value is OldValue - NewValue.
+    length(ValidMoves, Value).
 
+value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), other, Value) :-
+    switch_players((CurrentPlayer-PlayerName), PlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions, UpdatedPlayersInfo),
+    valid_moves(game_state(Board, NextPlayer, UpdatedPlayersInfo, UpdatedPlayersPositions), ValidMoves),
+    length(ValidMoves, Value).
 
 %------------------------------------------------------------------------------------------
 
