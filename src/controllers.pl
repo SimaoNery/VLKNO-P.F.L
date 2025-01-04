@@ -26,10 +26,6 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
     move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Move, NewGameState),
-
-    % TO DO: Give a value to the current state
-
-    % TO DO: See How To Handle AI
     
     % Start the Loop All Over Again
     game_loop(NewGameState).
@@ -37,16 +33,19 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
 % Initialize the GameState based on the GameConfig given
 initial_state(
-        game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, _), 
-        game_state(Board, (Player1-Player1Name), PlayerInfo, [Player1Name-(1,1), Player2Name-(BoardSize, BoardSize)])) :-
+        game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, _), 
+        game_state(Board, (Player1-Player1Name), PlayerInfo, PlayerPositions)) :-
 
     % Build the Board
     build_board(BoardSize, BoardSize, Board),
 
     % Set Player Info
-    PlayerInfo = [Player1Type-Player1Name, Player2Type-Player2Name].
+    PlayerInfo = [Player1Type-Player1Name, Player2Type-Player2Name],
 
-% ---Board Building---------------------------------------------------------
+    % Set starting positions based on PawnNumber
+    initialize_pawn_positions(BoardSize, PawnNumber, Player1Name, Player2Name, PlayerPositions).
+
+% ---Initial State Helpers---------------------------------------------------------
 
 % Builds the initial board with the desired size (all stacks size 1)
 build_board(0, _, []). % Base Case
@@ -60,6 +59,14 @@ build_row(0, []).
 build_row(Size, [1 | Row]) :-
     NewSize is Size - 1,
     build_row(NewSize, Row). % Recursively generates the rest of the row
+
+% 1 pawn per player
+initialize_pawn_positions(BoardSize, 1, Player1Name, Player2Name, PlayerPositions) :-
+    PlayerPositions = [Player1Name-(1,1), Player2Name-(BoardSize, BoardSize)].
+
+% 2 pawns
+initialize_pawn_positions(BoardSize, 2, Player1Name, Player2Name, PlayerPositions) :-
+    PlayerPositions = [Player1Name-(1,1), Player1Name-(BoardSize,BoardSize), Player2Name-(1, BoardSize), Player2Name-(BoardSize, 1)].
 %---------------------------------------------------------------------------
 
 
@@ -94,25 +101,25 @@ display_rows([Row | Rest], RowNum, PlayerPositions) :-
     NextRowNum is RowNum - 1,
     display_rows(Rest, NextRowNum, PlayerPositions).
 
-% Display "P1" if this is Player1 tile
-display_tiles([_ | Rest], RowNum, ColNum, [Player1-(ColNum, RowNum), Player2-(X, Y)]) :-   
-    write('['), write(Player1), write('] '),
+% Display a tile with a player
+display_tiles([Stone | Rest], RowNum, ColNum, PlayerPositions) :-
+    player_at_position(ColNum, RowNum, PlayerPositions, Player), !,
+    write('['), write(Player), write('] '),
     NextColNum is ColNum + 1,
-    display_tiles(Rest, RowNum, NextColNum, [Player1-(ColNum, RowNum), Player2-(X, Y)]).
+    display_tiles(Rest, RowNum, NextColNum, PlayerPositions).
 
-% Display "P2" if this is Player2 tile
-display_tiles([_ | Rest], RowNum, ColNum, [Player1-(X, Y), Player2-(ColNum, RowNum)]) :-
-    write('['), write(Player2), write('] '),
-    NextColNum is ColNum + 1,
-    display_tiles(Rest, RowNum, NextColNum,[Player1-(X, Y), Player2-(ColNum, RowNum)]).
-
-% Display regular stack of tiles 
-display_tiles([Stone | Rest], RowNum, ColNum, [Player1-(X1, Y1), Player2-(X2, Y2)]) :-
+% Display a regular tile
+display_tiles([Stone | Rest], RowNum, ColNum, PlayerPositions) :-
     write('[  '), write(Stone), write('  ] '),
     NextColNum is ColNum + 1,
-    display_tiles(Rest, RowNum, NextColNum,[Player1-(X1, Y1), Player2-(X2, Y2)]).
+    display_tiles(Rest, RowNum, NextColNum, PlayerPositions).
 
 display_tiles([], _, _, _). % Base Case
+
+% Checks all coordinates to see if there is a player there
+player_at_position(ColNum, RowNum, [Player-(ColNum, RowNum) | _], Player).
+player_at_position(ColNum, RowNum, [_ | Rest], Player) :-
+    player_at_position(ColNum, RowNum, Rest, Player).
 %---------------------------------------------------------------------------
 
 
@@ -121,7 +128,7 @@ display_tiles([], _, _, _). % Base Case
 % Changes the game state accordingly to a player new move
 move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions),
      Move,
-     game_state(NewBoard, NextPlayer, NewPlayersInfo, UpdatedPlayersPositions)) :-
+     game_state(NewBoard, NextPlayer, PlayersInfo, NewPlayersPositions)) :-
 
     % Validate the Move
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
@@ -131,13 +138,13 @@ move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions
     execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions),
 
     % Switch Players
-    switch_players((CurrentPlayer-PlayerName), NewPlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions, NewPlayersInfo).
+    switch_players((CurrentPlayer-PlayerName), PlayersInfo, NextPlayer).
 
 
 % Executes a valid move
 execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions) :-
     % Get the coordinates for the players piece
-    get_piece_position((CurrentPlayer-PlayerName), PlayersPositions, CurrentPosition),
+    get_piece_position(PlayerName, PlayersPositions, CurrentPosition),
 
     % Translate the move into new coordinates
     translate_move(Move, CurrentPosition, FinalPosition),
@@ -177,7 +184,7 @@ pick_and_place_stone(Board, CurrentPosition, FinalPosition, PlayersPositions, Ne
 
 % Creates a list with all the valid moves
 valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), ValidMoves) :-
-    get_piece_position((CurrentPlayer-PlayerName), PlayersPositions, CurrentPosition),
+    get_piece_position(PlayerName, PlayersPositions, CurrentPosition),
     findall(
         Move,
         (
@@ -188,9 +195,13 @@ valid_moves(game_state(Board, (CurrentPlayer-PlayerName), _, PlayersPositions), 
     ),
     sort(RawMoves, ValidMoves).
 
-% Gets the coordinates of the current players piece
-get_piece_position((Player-PlayerName), [PlayerName-(X, Y), Player2Pos], (X, Y)).
-get_piece_position((Player-PlayerName), [Player1Pos, PlayerName-(X, Y)], (X, Y)).
+% Base case: the player and piece position match
+get_piece_position(PlayerName, [PlayerName-(X, Y) | _], (X, Y)) :- !.
+
+% Recursive case: keep searching in the rest of the list
+get_piece_position(PlayerName, [_ | Rest], Position) :-
+    get_piece_position(PlayerName, Rest, Position).
+
 
 % Translates the move choosen by the player to the coordinates resulting of that move
 translate_move(up, (X, Y), (X, Y1)) :- Y1 is Y + 1.
@@ -236,12 +247,20 @@ get_height(Board, (X, Y), Height) :-
     nth1(InvertedY, Board, Row),
     nth1(X, Row, Height). 
 
-% Check if a position is occupied by any player
-is_occupied((X, Y), [Player1Pos, Player2Name-(X, Y)]).
-is_occupied((X, Y), [Player1Name-(X, Y) | Player2Pos]).
+% Base case: the position matches the current player's pawn
+is_occupied((X, Y), [PlayerName-(X, Y) | _]) :- !.
 
-update_piece_coordinates((Player-PlayerName), NewPosition, [PlayerName-OldPosition | Player2Pos], [PlayerName-NewPosition| Player2Pos]).
-update_piece_coordinates((Player-PlayerName), NewPosition, [Player1Pos | PlayerName-OldPosition], [Player1Pos | PlayerName-NewPosition]).
+% Recursive case: keep checking the rest of the list
+is_occupied((X, Y), [_ | Rest]) :-
+    is_occupied((X, Y), Rest).
+
+
+% Base case: found the player whose position needs updating
+update_piece_coordinates((Player-PlayerName), NewPosition, [PlayerName-OldPosition | Rest], [PlayerName-NewPosition | Rest]) :- !.
+
+% Recursive case: keep checking the rest of the list
+update_piece_coordinates((Player-PlayerName), NewPosition, [OtherPlayer-OtherPosition | Rest], [OtherPlayer-OtherPosition | UpdatedRest]) :-
+    update_piece_coordinates((Player-PlayerName), NewPosition, Rest, UpdatedRest).
 %------------------------------------------------------------------------------------------
 
 % --- Auxiliary Stone Movement Predicates ----------------------------------------------------------------------
@@ -339,11 +358,8 @@ write_positions([(X, Y)|Rest], Index) :-
 %------------------------------------------------------------------------------------------
 
 % Switch Players
-switch_players((Player1-Player1Name), [Player1Name-(X1, Y1), Player2Name-(X2, Y2)], 
-               [Player1Type-Player1Name, Player2Type-Player2Name], (Player2Type-Player2Name), 
-               [Player2Name-(X2, Y2), Player1Name-(X1, Y1)], [Player2Type-Player2Name, Player1Type-Player1Name]).
-
-switch_players(_, _, _, _, _) :- write('Fallback clause called'), fail.
+switch_players((CurrentPlayer-CurrentName), [Player1Type-CurrentName, Player2Type-Player2Name], (NextPlayer-Player2Name)).
+switch_players((CurrentPlayer-CurrentName), [Player1Type-Player1Name, Player2Type-CurrentName], (NextPlayer-Player1Name)).
 %------------------------------------------------------------------------------------------
 
 % --- Game Over Functions ---------------------------------------------------------------------------

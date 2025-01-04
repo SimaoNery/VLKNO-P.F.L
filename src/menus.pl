@@ -9,7 +9,8 @@ main_menu(GameConfig) :-
     write('     2 => Choose the Game Type'), nl, nl,
     write('     3 => Set Difficulty Levels for AI'), nl, nl,
     write('     4 => Set Board Size'), nl, nl,
-    write('     5 => Rules'), nl, nl, nl,
+    write('     5 => Set Pawn Number'), nl, nl,
+    write('     6 => Rules'), nl, nl, nl,
     write('Enter Your Choice(1. - 2. - 3. - 4. - 5.): '), nl,
     
     read(Choice),
@@ -47,6 +48,10 @@ menu_options(4, GameConfig) :-
     main_menu(NewGameConfig).
 
 menu_options(5, GameConfig) :-
+    set_pawn_number(GameConfig, NewGameConfig),
+    main_menu(NewGameConfig).
+
+menu_options(6, GameConfig) :-
     write('========== VLKNO GAME RULES =========='), nl, nl,
     write('VLKNO is a 2-player abstract strategy game played on a 5x5 grid covered in 25 stackable stones.'), nl,
     write('Players each have 2 pawns in their color, which are placed on stones in diagonally opposite corners of the grid at the start of the game.'), nl, nl,
@@ -72,8 +77,8 @@ set_player_names(GameConfig, NewGameConfig) :-
     write('Enter Player2 Name: '), nl,
     read(Player2Name),
 
-    GameConfig = game_config(BoardSize, Player1Type, Player2Type, _, _, AiLevel),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, AiLevel).
+    GameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, _, _, AiLevel),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
 
 % Handle player's choice to play again
 handle_play_again(yes, MenuOption, GameConfig) :-
@@ -101,8 +106,8 @@ set_game_type(GameConfig, NewGameConfig) :-
     validate_player_type(Player2Type),
 
     % Update game configuration to reflect user choice of Players
-    GameConfig = game_config(BoardSize, _, _, Player1Name, Player2Name, AiLevel),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, AiLevel).
+    GameConfig = game_config(BoardSize, _, _, PawnNumber, Player1Name, Player2Name, AiLevel),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
 
 % Validate Input For Player Type
 validate_player_type(h).
@@ -121,8 +126,8 @@ set_difficulty_level(GameConfig, NewGameConfig) :-
     validate_difficulty_level(DifficultyLevel),
 
     % Update game configuration to reflect user choice of AI Difficulty Level
-    GameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, _),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, DifficultyLevel).
+    GameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, _),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, DifficultyLevel).
 
 % Validate Input For AI Difficulty Level
 validate_difficulty_level(1).
@@ -134,7 +139,7 @@ validate_difficulty_level(_) :-
 
 % Set Board Size
 set_board_size(GameConfig, NewGameConfig) :-
-  write('========== Board Size =========='), nl, nl,
+    write('========== Board Size =========='), nl, nl,
     write('Enter the Board Size: '), nl,
     write('     => 4x4 (4.)'), nl,
     write('     => 5x5 (5.)'), nl,
@@ -143,8 +148,8 @@ set_board_size(GameConfig, NewGameConfig) :-
     validate_board_size(BoardSize),
 
     % Update game configuration to reflect user choice of Board Size
-    GameConfig = game_config(_, Player1Type, Player2Type, Player1Name, Player2Name, AiLevel),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, Player1Name, Player2Name, AiLevel).
+    GameConfig = game_config(_, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
 
 % Validate Input For AI Difficulty Level
 validate_board_size(4).
@@ -152,4 +157,25 @@ validate_board_size(5).
 validate_board_size(6).
 validate_board_size(_) :-
     write('Invalid Input! Please enter "4.", "5." or "6."'), nl, 
+    fail.
+
+
+% Set Pawn Number
+set_pawn_number(GameConfig, NewGameConfig) :-
+    write('========== Pawn Number =========='), nl, nl,
+    write('Enter the Number of Pawns: '), nl,
+    write('     => 1 per player (1.)'), nl,
+    write('     => 2 per player (2.)'), nl,
+
+    read(PawnNumber),
+    validate_pawn_number(PawnNumber),
+
+    GameConfig = game_config(BoardSize, Player1Type, Player2Type, _, Player1Name, Player2Name, AiLevel),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
+
+% Validate Pawn Number
+validate_pawn_number(1).
+validate_pawn_number(2).
+validate_pawn_number(_) :-
+    write('Invalid Input! Please enter "1." or "2."'), nl,
     fail.
