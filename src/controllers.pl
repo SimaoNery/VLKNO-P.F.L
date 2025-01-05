@@ -149,7 +149,7 @@ display_game(game_state(Board, _, _, PlayerPositions)) :-
 display_board(Board, PlayerPositions) :-
     length(Board, BoardLength),
     display_rows(Board, BoardLength, PlayerPositions), % Display rows from the last one
-    write('   _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _'), nl,  % Horizontal separator
+    write('   _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _'), nl,  % Horizontal separator
     write('    '),
     display_columns(1, BoardLength).  % Display column numbers
 
@@ -158,7 +158,7 @@ display_board(Board, PlayerPositions) :-
 % It prints numbers from 1 to the length of the board.
 display_columns(Current, End) :-
     Current =< End,
-    write('   '), write(Current), write('    '),
+    write('     '), write(Current), write('     '),
     Next is Current + 1,
     display_columns(Next, End).
 
@@ -176,17 +176,17 @@ display_rows([Row | Rest], RowNum, PlayerPositions) :-
 
 % display_tiles/4
 % Displays the tiles in a row. Each tile can either be a stone or a player piece.
-% It checks if a player is at a specific position and displays the corresponding symbol.
-display_tiles([_ | Rest], RowNum, ColNum, PlayerPositions) :-
+% It checks if a player is at a specific position and displays the corresponding symbol with the stone (value) in parenthesis after the symbol.
+display_tiles([Stone | Rest], RowNum, ColNum, PlayerPositions) :-
     player_at_position(ColNum, RowNum, PlayerPositions, Player), !,
-    write('['), write(Player), write('] '),  % Display player piece
+    write('['), write(Player), write('('), write(Stone), write(')'), write('] '),  % Display player piece
     NextColNum is ColNum + 1,
     display_tiles(Rest, RowNum, NextColNum, PlayerPositions).  % Recurse for next column
 
 % display_tiles/4 (Regular tile case)
 % If no player is at the current position, display the stone (value) on the tile.
 display_tiles([Stone | Rest], RowNum, ColNum, PlayerPositions) :-
-    write('[  '), write(Stone), write('  ] '),  % Display regular stone
+    write('[    '), write(Stone), write('   ] '),  % Display regular stone
     NextColNum is ColNum + 1,
     display_tiles(Rest, RowNum, NextColNum, PlayerPositions).  % Recurse for next column
 
