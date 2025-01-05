@@ -171,16 +171,13 @@ move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions
 % Executes a valid move
 execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, SelectedPawn, Move, NewBoard, NewPlayersPositions) :-
 
-    write('executing move'), nl,
     % Translate the move into new coordinates
     translate_move(Move, SelectedPawn, FinalPosition),
 
-    write('translated move'), nl,
 
     % Move the piece
     update_piece_coordinates((CurrentPlayer-PlayerName), SelectedPawn, FinalPosition, PlayersPositions, NewPlayersPositions),
 
-    write('updated piece coordinates'), nl,
 
     % Changes a stone of location based on player choice
     pick_and_place_stone(Board, CurrentPlayer, (CurrentPlayer-PlayerName), _, SelectedPawn, FinalPosition, PlayersPositions, NewBoard).
