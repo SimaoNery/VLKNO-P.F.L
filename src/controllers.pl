@@ -256,8 +256,6 @@ pick_and_place_stone(Board, 2, (CurrentPlayer-PlayerName), PlayersInfo, CurrentP
 
     % Filter moves to keep only those with the highest value
 
-    write('SortedRemoveWithValues: '), write(SortedRemoveWithValues), nl,
-    write('Best Removes: '), write(BestRemoves), nl,
     
     % Choose randomly among the best moves
     random_member(_-BestRemove, BestRemoves),
@@ -270,7 +268,6 @@ pick_and_place_stone(Board, 2, (CurrentPlayer-PlayerName), PlayersInfo, CurrentP
 
     get_valid_positions(Board, BestRemove, CurrentPosition, FinalPosition, PlayersPositions, ValidPositions),
 
-    write('Valid Positions: '), write(ValidPositions), nl,
 
     findall(AddValue-Add,
             (
@@ -294,7 +291,6 @@ pick_and_place_stone(Board, 2, (CurrentPlayer-PlayerName), PlayersInfo, CurrentP
      % Sort moves by their values
     keysort(AddWithValues, SortedAddWithValues),
     
-    write('SortedAddWithValues: '), write(SortedAddWithValues), nl,
 
     % Find the highest value
     last(SortedAddWithValues, HighestAddValue-_),
@@ -304,7 +300,6 @@ pick_and_place_stone(Board, 2, (CurrentPlayer-PlayerName), PlayersInfo, CurrentP
 
     % Filter moves to keep only those with the highest value
 
-    write('Best Adds: '), write(BestAdds), nl,
     
     % Choose randomly among the best moves
     random_member(_-BestAdd, BestAdds),
@@ -552,7 +547,8 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
 
 value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), current, Value) :-
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
-    length(ValidMoves, Value).
+    length(ValidMoves, Value2),
+    Value is 2 * Value2.
 
 value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), other, Value) :-
     switch_players((CurrentPlayer-PlayerName), PlayersPositions, PlayersInfo, NextPlayer, UpdatedPlayersPositions, UpdatedPlayersInfo),
