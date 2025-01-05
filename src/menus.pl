@@ -32,7 +32,7 @@ menu_options(1, GameConfig) :-
     write('     => no'), nl,
 
     read(PlayAgain),
-    handle_play_again(PlayAgain, 1, GameConfig).
+    handle_play_again(PlayAgain, GameConfig).
 
 menu_options(2, GameConfig) :- 
     set_game_type(GameConfig, NewGameConfig),
@@ -72,12 +72,21 @@ set_player_names(GameConfig, NewGameConfig) :-
     write('Enter Player2 Name: '), nl,
     read(Player2Name),
 
-    GameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, _, _, AiLevel),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
+    validate_names(Player1Name, Player2Name, GameConfig, NewGameConfig).
+
+% If names are different
+validate_names(Player1Name, Player2Name, GameConfig, NewGameConfig) :-
+    Player1Name \= Player2Name,
+    GameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, _, _),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name).
+
+validate_names(Player1Name, Player1Name, GameConfig, NewGameConfig) :-
+    nl ,nl, write('Error: Player names must be different!'), nl, nl,
+    set_player_names(GameConfig, NewGameConfig).
 
 % Handle player's choice to play again
-handle_play_again(yes, MenuOption, GameConfig) :-
-    menu_options(MenuOption, GameConfig).
+handle_play_again(yes, GameConfig) :-
+    main_menu(GameConfig).
 
 handle_play_again(no, _, _) :-
     nl, write('Thanks for playing! Goodbye!'), nl.
@@ -103,8 +112,8 @@ set_game_type(GameConfig, NewGameConfig) :-
     validate_player_type(Player2Type),
 
     % Update game configuration to reflect user choice of Players
-    GameConfig = game_config(BoardSize, _, _, PawnNumber, Player1Name, Player2Name, AiLevel),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
+    GameConfig = game_config(BoardSize, _, _, PawnNumber, Player1Name, Player2Name),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name).
 
 % Validate Input For Player Type
 validate_player_type(0).
@@ -124,8 +133,8 @@ set_board_size(GameConfig, NewGameConfig) :-
     validate_board_size(BoardSize),
 
     % Update game configuration to reflect user choice of Board Size
-    GameConfig = game_config(_, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
+    GameConfig = game_config(_, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name).
 
 % Validate Input For AI Difficulty Level
 validate_board_size(4).
@@ -146,8 +155,8 @@ set_pawn_number(GameConfig, NewGameConfig) :-
     read(PawnNumber),
     validate_pawn_number(PawnNumber),
 
-    GameConfig = game_config(BoardSize, Player1Type, Player2Type, _, Player1Name, Player2Name, AiLevel),
-    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, AiLevel).
+    GameConfig = game_config(BoardSize, Player1Type, Player2Type, _, Player1Name, Player2Name),
+    NewGameConfig = game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name).
 
 % Validate Pawn Number
 validate_pawn_number(1).

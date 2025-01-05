@@ -11,9 +11,8 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
 % If the game isn't over proceed with the normal loop
 game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)) :- 
-    % Display the current game state
-
     nl, nl, 
+    % Display the current game state
     display_game(game_state(Board, PlayerName, PlayersInfo, PlayersPositions)), nl, nl,
     write('It\'s '), write(PlayerName), write('\'s turn!'), nl, nl,
 
@@ -30,7 +29,7 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
 % Initialize the GameState based on the GameConfig given
 initial_state(
-        game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name, _), 
+        game_config(BoardSize, Player1Type, Player2Type, PawnNumber, Player1Name, Player2Name), 
         game_state(Board, (Player1Type-Player1Name), PlayerInfo, PlayerPositions)) :-
 
     % Build the Board
@@ -124,12 +123,20 @@ player_at_position(ColNum, RowNum, [_ | Rest], Player) :-
 
 
 % Gives list of pawns for a player
-pawn_list(PlayerName, PlayersPositions, Pawns) :-
-    findall((X, Y), member(PlayerName-(X, Y), PlayersPositions), Pawns).
+pawn_list(Gamestate, PlayerName, PlayersPositions, Pawns) :-
+    findall(
+        (X, Y), 
+        (
+            member(PlayerName-(X, Y), PlayersPositions), 
+            valid_moves(Gamestate, (X, Y), ValidMoves),
+            ValidMoves \= []
+        ),
+        Pawns
+    ).
 
 % Selects a pawn to move
-select_pawn(PlayerName, PlayersPositions, SelectedPawn) :-
-    pawn_list(PlayerName, PlayersPositions, Pawns),
+select_pawn(Gamestate, PlayerName, PlayersPositions, SelectedPawn) :-
+    pawn_list(Gamestate, PlayerName, PlayersPositions, Pawns),
     select_pawn_from_list(Pawns, SelectedPawn).
 
 % If there is only 1 pawn per player
@@ -218,8 +225,6 @@ get_with_value_2(SortedValues, HighestValue, BestValues) :-
     findall(Value-Move, 
             (member(Value-Move, SortedValues), Value =:= HighestValue), 
             BestValues).
-
-
 
 
 pick_and_place_stone(Board, 0, _, _, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
@@ -544,7 +549,7 @@ switch_players((CurrentPlayer-CurrentName), [Player1Type-Player1Name, CurrentPla
 
 choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 0, SelectedPawn, Move) :-
     % In 2 pawn game mode, choose the piece
-    select_pawn(PlayerName, PlayersPositions, SelectedPawn),
+    select_pawn(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, SelectedPawn),
 
     % Show the player moves he can do
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, ValidMoves),
@@ -556,7 +561,7 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
     write('AI thinking...'), nl,
 
     % Get the list of pawns for the player
-    pawn_list(PlayerName, PlayersPositions, Pawns),
+    pawn_list(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, Pawns),
 
     % Choose a random pawn
     random_member(SelectedPawn, Pawns),
@@ -576,7 +581,7 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
     write('AI thinking...'), nl,
 
     % Get the list of pawns for the player
-    pawn_list(PlayerName, PlayersPositions, Pawns),
+    pawn_list(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, Pawns),
 
     write('Pawns: '), write(Pawns), nl,
 
@@ -628,7 +633,7 @@ sum_list([H|T], Sum) :-
 
 
 value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), current, Value) :-
-    pawn_list(PlayerName, PlayersPositions, Pawns),
+    pawn_list(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, Pawns),
     findall(
         TempValue,
         (
@@ -645,7 +650,7 @@ value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosition
 
 value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), other, Value) :-
     switch_players((CurrentPlayer-PlayerName), PlayersInfo, (NextPlayer-NextPlayerName)),
-    pawn_list(NextPlayerName, PlayersPositions, Pawns),
+    pawn_list(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), NextPlayerName, PlayersPositions, Pawns),
     findall(
         TempValue,
         (
