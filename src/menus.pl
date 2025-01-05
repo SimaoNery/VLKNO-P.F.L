@@ -12,7 +12,7 @@ main_menu(GameConfig) :-
     write('     4 => Set Pawn Number'), nl, nl,
     write('     5 => Rules'), nl, nl,
     write('     6 => Predefined States'), nl, nl,
-    write('Enter Your Choice(1. - 2. - 3. - 4. - 5.): '), nl,
+    write('Enter Your Choice(1. - 2. - 3. - 4. - 5. - 6.): '), nl,
     read(Choice),
     menu_options(Choice, GameConfig).
 
@@ -62,7 +62,7 @@ menu_options(6, _) :-
 
 menu_options(_, GameConfig) :- 
     % Handle invalid menu choices
-    write('Invalid Choice! Please select 1, 2, 3, 4, or 5.'), nl,
+    write('Invalid Choice! Please select 1, 2, 3, 4, 5 or 6.'), nl,
     main_menu(GameConfig).
 
 % ======================= Player Names ========================
