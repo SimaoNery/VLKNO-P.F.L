@@ -83,7 +83,7 @@ handle_play_again_prompt(GameConfig) :-
     write('Want to play again?'), nl, nl,
     write('     => yes'), nl,
     write('     => no'), nl,
-    read(PlayAgain),
+    read(PlayAgain), !,
     handle_play_again(PlayAgain, GameConfig).
 
 % Replay the game if the player says "yes".
@@ -91,7 +91,7 @@ handle_play_again(yes, GameConfig) :-
     main_menu(GameConfig).
 
 % Exit the game if the player says "no" or provides an invalid response.
-handle_play_again(_, _, _) :-
+handle_play_again(_, _) :-
     nl, write('Thanks for playing! Goodbye!'), nl.
 
 % ===================== Game Configuration ====================
