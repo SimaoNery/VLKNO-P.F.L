@@ -22,7 +22,7 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
     write('It\'s '), write(PlayerName), write('\'s turn!'), nl, nl,
 
     % Choose the move for the current player
-    choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), CurrentPlayer, SelectedPawn, Move),
+    choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, CurrentPlayer, Move),
 
     % Apply the move if valid, resulting in a new game state
     move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn-Move, NewGameState),
@@ -734,7 +734,7 @@ switch_players((CurrentPlayer-CurrentName), [Player1Type-Player1Name, CurrentPla
 
 % --- Bot Moves ---------------------------------------------------------------------------
 
-% choose_move/4: 
+% choose_move/3: 
 % Decides the next move for the player based on the game mode (human, easy AI, or hard AI).
 % 0 indicates a human player, 1 indicates a random bot (easy mode), and 2 indicates a greedy bot (hard mode).
 
@@ -742,7 +742,7 @@ switch_players((CurrentPlayer-CurrentName), [Player1Type-Player1Name, CurrentPla
 % - The player is prompted to select one of their pawns.
 % - A list of valid moves for the selected pawn is shown.
 % - The player is asked to input their move from the available options.
-choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 0, SelectedPawn, Move) :-
+choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, 0, Move) :-
     select_pawn(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, SelectedPawn),
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, ValidMoves),
     write('These are your valid moves => '), write(ValidMoves), nl, nl,
@@ -751,7 +751,7 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
 % For a random bot (1):
 % - The AI selects a random pawn from the list of the player’s pawns.
 % - The AI then selects a random valid move for that pawn.
-choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 1, SelectedPawn, Move) :-
+choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, 1,Move) :-
     write('AI thinking...'), nl,
     pawn_list(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, Pawns),
     random_member(SelectedPawn, Pawns),
@@ -762,7 +762,7 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
 % For a greedy bot (2):
 % - The AI evaluates all valid moves for each of its pawns.
 % - The move that maximizes the value (based on a heuristic function) is chosen.
-choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 2, SelectedPawn, BestMove) :-
+choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, 2, BestMove) :-
     write('AI thinking...'), nl,
     pawn_list(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, Pawns),
     write('Pawns: '), write(Pawns), nl,
