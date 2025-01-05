@@ -19,7 +19,6 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
 
     choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), CurrentPlayer, Move), !,
 
-    write('Moving pawn...'), nl, nl,
 
     % Validate the move and execute it if valid, otherwise, asks for a new valid move
     move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Move, NewGameState),
@@ -120,8 +119,6 @@ move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions
     valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), ValidMoves),
     member(Move, ValidMoves), % If the move is in valid moves it's valid
 
-    write('Executing move...'), nl, nl,
-
     % Execute Move
     execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard, NewPlayersPositions),
 
@@ -140,14 +137,49 @@ execute_move(Board, (CurrentPlayer-PlayerName), PlayersPositions, Move, NewBoard
     % Move the piece
     update_piece_coordinates((CurrentPlayer-PlayerName), FinalPosition, PlayersPositions, NewPlayersPositions),
 
-    write('Picking and placing stone...'), nl, nl,
-
     % Changes a stone of location based on player choice
-    pick_and_place_stone(Board, CurrentPlayer, CurrentPosition, FinalPosition, PlayersPositions, NewBoard).
+    pick_and_place_stone(Board, CurrentPlayer, (CurrentPlayer-PlayerName), PlayersInfo, CurrentPosition, FinalPosition, PlayersPositions, NewBoard).
 
 
 % Will choose a stone and change its location based on user input
-pick_and_place_stone(Board, 0, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
+extract_second_elements([], []).
+extract_second_elements([_-Position | Rest], [Position | PositionsRest]) :-
+    extract_second_elements(Rest, PositionsRest).
+
+get_non_empty_positions(Board, Positions) :-
+    length(Board, BoardLength),
+    findall((X, InvertedY),
+            (
+                nth1(Y, Board, Row),
+                nth1(X, Row, Height),
+                Height > 0,
+                InvertedY is BoardLength - Y + 1
+            ),
+            Positions).
+
+in_exclude(ExcludePositions, X) :-
+    member(X, ExcludePositions).
+
+% Use exclude/3 to filter positions
+filter_positions(Positions, ExcludePositions, FilteredPositions) :-
+    exclude(in_exclude(ExcludePositions), Positions, FilteredPositions).
+    % Combine the predicates to get the desired positions
+
+get_valid_positions(Board, SmallestStackPosition, CurrentPosition, FinalPosition, PlayersPositions, ValidPositions) :-
+    get_non_empty_positions(Board, AllPositions),
+    extract_second_elements(PlayersPositions, PlayersPositionsList),
+    append([SmallestStackPosition, CurrentPosition, FinalPosition], PlayersPositionsList, ExcludePositions),
+    filter_positions(AllPositions, ExcludePositions, ValidPositions).
+
+get_with_value(SortedAddWithValues, HighestAddValue, BestAdds) :-
+    findall(Value-Move, 
+            (member(Value-Move, SortedAddWithValues), Value =:= HighestAddValue), 
+            BestAdds).
+
+
+
+
+pick_and_place_stone(Board, 0, _, _, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
     % Determine the smallest unoccupied stack (excluding the previous position)
     find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPositions, PlayersPositions),
 
@@ -167,54 +199,123 @@ pick_and_place_stone(Board, 0, CurrentPosition, FinalPosition, PlayersPositions,
     % Update the stacks on the board
     move_stone(Board, SmallestStackPosition, (X, Y), NewBoard).
 
-extract_second_elements([], []).
-extract_second_elements([_-Position | Rest], [Position | PositionsRest]) :-
-    extract_second_elements(Rest, PositionsRest).
 
-get_non_empty_positions(Board, Positions) :-
-    findall((X, Y),
-            (
-                nth1(Y, Board, Row),
-                nth1(X, Row, Height),
-                Height > 0
-            ),
-            Positions).
+pick_and_place_stone(Board, 1, _, _, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
 
-in_exclude(ExcludePositions, X) :-
-    member(X, ExcludePositions).
-
-% Use exclude/3 to filter positions
-filter_positions(Positions, ExcludePositions, FilteredPositions) :-
-    exclude(in_exclude(ExcludePositions), Positions, FilteredPositions).
-    % Combine the predicates to get the desired positions
-
-get_valid_positions(Board, SmallestStackPosition, CurrentPosition, FinalPosition, PlayersPositions, ValidPositions) :-
-    get_non_empty_positions(Board, AllPositions),
-    extract_second_elements(PlayersPositions, PlayersPositionsList),
-    append([SmallestStackPosition, CurrentPosition, FinalPosition], PlayersPositionsList, ExcludePositions),
-    filter_positions(AllPositions, ExcludePositions, ValidPositions).
-
-pick_and_place_stone(Board, 1, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
-
-    write('AI thinking what stone to remove...'), nl,
     % Determine the smallest unoccupied stack (excluding the previous position)
     find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPositions, PlayersPositions),
 
     % Randomly select a position to remove the stone
     random_member(SmallestStackPosition, SmallestStackPositions),
 
-    write('AI chose: '), write(SmallestStackPosition), nl,
-    write('AI thinking where to place the stone...'), nl,
-
     get_valid_positions(Board, SmallestStackPosition, CurrentPosition, FinalPosition, PlayersPositions, ValidPositions),
 
     % Randomly select a position to place the stone
     random_member(PlacePosition, ValidPositions),
 
-    write('AI chose: '), write(PlacePosition), nl,
+
+    write('AI moved stone from '), write(SmallestStackPosition), write(' to '), write(PlacePosition), nl,
 
     % Update the stacks on the board
     move_stone(Board, SmallestStackPosition, PlacePosition, NewBoard).
+
+
+
+pick_and_place_stone(Board, 2, (CurrentPlayer-PlayerName), PlayersInfo, CurrentPosition, FinalPosition, PlayersPositions, NewBoard) :-
+    % Determine the smallest unoccupied stack (excluding the previous position)
+    find_smallest_stack(Board, CurrentPosition, FinalPosition, SmallestStackPositions, PlayersPositions),
+
+    % Randomly select a position to remove the stone
+    findall(RemoveValue-Remove,
+            (
+                member(Remove, SmallestStackPositions),
+                
+                % Get the stack size of the coordinate
+                get_height(Board, Remove, RemoveHeight),
+
+
+                % Decrement the height at the given position
+                NewRemoveHeight is RemoveHeight - 1,
+                update_board(Board, Remove, NewRemoveHeight, TempRemoveBoard),
+                
+                % Evaluate the new game state for the given move
+                value(game_state(TempRemoveBoard, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), current, RemovePositiveValue),
+                value(game_state(TempRemoveBoard, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), other, RemoveNegativeValue),
+                RemoveValue is RemovePositiveValue - RemoveNegativeValue
+            ),
+            RemoveWithValues),
+    
+    % Sort moves by their values
+    keysort(RemoveWithValues, SortedRemoveWithValues),
+    
+    % Find the highest value
+    last(SortedRemoveWithValues, HighestRemoveValue-_),
+
+
+    get_with_value(SortedRemoveWithValues, HighestRemoveValue, BestRemoves),
+
+    % Filter moves to keep only those with the highest value
+
+    write('SortedRemoveWithValues: '), write(SortedRemoveWithValues), nl,
+    write('Best Removes: '), write(BestRemoves), nl,
+    
+    % Choose randomly among the best moves
+    random_member(_-BestRemove, BestRemoves),
+
+    get_height(Board, BestRemove, HeightRemove),
+
+    NewHeightRemove is HeightRemove - 1,
+
+    update_board(Board, BestRemove, NewHeightRemove, TempRemoveBoard),
+
+    get_valid_positions(Board, BestRemove, CurrentPosition, FinalPosition, PlayersPositions, ValidPositions),
+
+    write('Valid Positions: '), write(ValidPositions), nl,
+
+    findall(AddValue-Add,
+            (
+                member(Add, ValidPositions),
+                
+                % Get the stack size of the coordinate
+                get_height(TempRemoveBoard, Add, HeightAdd),
+
+                % Decrement the height at the given position
+                NewHeightAdd is HeightAdd + 1,
+                update_board(TempRemoveBoard, Add, NewHeightAdd, TempAddBoard),
+                
+                % Evaluate the new game state for the given move
+                value(game_state(TempAddBoard, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), current, AddPositiveValue),
+                value(game_state(TempAddBoard, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), other, AddNegativeValue),
+                AddValue is AddPositiveValue - AddNegativeValue
+            ),
+            AddWithValues),
+
+
+     % Sort moves by their values
+    keysort(AddWithValues, SortedAddWithValues),
+    
+    write('SortedAddWithValues: '), write(SortedAddWithValues), nl,
+
+    % Find the highest value
+    last(SortedAddWithValues, HighestAddValue-_),
+
+
+    get_with_value(SortedAddWithValues, HighestAddValue, BestAdds),
+
+    % Filter moves to keep only those with the highest value
+
+    write('Best Adds: '), write(BestAdds), nl,
+    
+    % Choose randomly among the best moves
+    random_member(_-BestAdd, BestAdds),
+
+
+    write('AI moved stone from '), write(BestRemove), write(' to '), write(BestAdd), nl,
+
+    % Update the stacks on the board
+    move_stone(Board, BestRemove, BestAdd, NewBoard).
+
+
 %------------------------------------------------------------------------------------------
 
 % --- Auxiliary Move Predicates ---------------------------------------------------------------------
@@ -435,8 +536,15 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
     % Sort moves by their values
     keysort(MovesWithValues, SortedMovesWithValues),
     
-    % Select the move with the highest value
-    last(SortedMovesWithValues, _-BestMove),
+    % Find the highest value
+    last(SortedMovesWithValues, HighestValue-_),
+
+    get_with_value(SortedMovesWithValues, HighestValue, BestMoves),
+
+    % Filter moves to keep only those with the highest value
+    
+    % Choose randomly among the best moves
+    random_member(_-BestMove, BestMoves),
     
     write('AI chose: '), write(BestMove), nl, !.
 
