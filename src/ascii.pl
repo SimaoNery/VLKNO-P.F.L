@@ -1,6 +1,7 @@
-% File for function to draw ASCII Art
+% ========================= ASCII Art for VLKNO =========================
 
-% Draw ASCII Title for VLKNO
+% Draw the ASCII title for the VLKNO game.
+% This function displays a stylized title banner in the console when the game starts.
 draw_title :-
     write('                                    ____      ____  ____         ____    ____  _____   ______           _____    '), nl,
     write('                                   |    |    |    ||    |       |    |  |    ||\\    \\ |\\     \\     ____|\\    \\   '), nl,
@@ -14,3 +15,4 @@ draw_title :-
     write('                                    \\|___||___|/  |____|_____|/|____|   |____|  |____|   |___|/  \\|____||____|/  '), nl,
     write('                                     \\(    )/      \\(    )/     \\(       )/      \\(       )/       \\(    )/    '), nl,
     write('                                      \'    \'        \'    \'       \'       \'        \'       \'         \'    \'   '), nl.
+
