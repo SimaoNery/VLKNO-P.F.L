@@ -91,7 +91,7 @@ handle_play_again(yes, GameConfig) :-
 handle_play_again(no, _, _) :-
     nl, write('Thanks for playing! Goodbye!'), nl.
 
-handle_play_again(_, MenuOption, GameConfig) :-
+handle_play_again(_, _, _) :-
     nl, write('Thanks for playing! Goodbye!'), nl.
 
 % Set game type
