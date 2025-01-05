@@ -49,6 +49,47 @@ initial_state(
     % Initialize the pawn positions based on the number of pawns each player has
     initialize_pawn_positions(BoardSize, PawnNumber, Player1Name, Player2Name, PlayerPositions).
 
+% middle_state/1
+% Initializes the game state with a middle game predefined board and player positions.
+% This state is useful for testing and showcasing the game logic.
+
+middle_state(GameState) :-
+    Board = [[0,2,1,2,0],
+             [0,3,0,0,4],
+             [0,3,1,2,0],
+             [0,0,1,0,0],
+             [4,0,0,0,2]],
+
+    Player1Type = 0,
+    Player1Name = smith,
+    Player2Type = 0,
+    Player2Name = jones,
+    PlayerInfo = [Player1Type-Player1Name, Player2Type-Player2Name],
+    PlayerPositions = [smith-(5,1), smith-(3,3), jones-(2,4), jones-(4,5)],
+
+    GameState = game_state(Board, (Player1Type-Player1Name), PlayerInfo, PlayerPositions).
+
+% end_state/1
+% Initializes the game state with an end game predefined board and player positions.
+% This state is useful for testing and showcasing the game over logic.
+
+end_state(GameState) :-
+    Board = [[0,1,0,0,0],
+             [0,6,0,4,0],
+             [1,0,0,6,2],
+             [1,0,0,0,0],
+             [0,0,2,2,0]],
+
+    Player1Type = 0,
+    Player1Name = smith,
+    Player2Type = 0,
+    Player2Name = jones,
+    PlayerInfo = [Player1Type-Player1Name, Player2Type-Player2Name],
+    PlayerPositions = [smith-(1,2), smith-(5,3), jones-(2,5), jones-(4,1)],
+
+    GameState = game_state(Board, (Player1Type-Player1Name), PlayerInfo, PlayerPositions).
+    
+
 % ---Initial State Helpers---------------------------------------------------------
 
 % build_board/3

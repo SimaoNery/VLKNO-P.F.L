@@ -10,7 +10,8 @@ main_menu(GameConfig) :-
     write('     2 => Choose the Game Type'), nl, nl,
     write('     3 => Set Board Size'), nl, nl,
     write('     4 => Set Pawn Number'), nl, nl,
-    write('     5 => Rules'), nl, nl, nl,
+    write('     5 => Rules'), nl, nl,
+    write('     6 => Predefined States'), nl, nl,
     write('Enter Your Choice(1. - 2. - 3. - 4. - 5.): '), nl,
     read(Choice),
     menu_options(Choice, GameConfig).
@@ -50,6 +51,14 @@ menu_options(5, GameConfig) :-
     write('    - Place the stone on any other unoccupied stack (not the one you just left).'), nl, nl,
     write('You win if your opponent cannot complete each step of their turn.'), nl, nl,
     main_menu(GameConfig).
+
+menu_options(6, _) :- 
+    % Show the predefined states menu
+    write('========== Predefined States =========='), nl, nl,
+    write('     1 => Middle Game'), nl,
+    write('     2 => End Game'), nl,
+    read(Choice),
+    predefined_states(Choice).
 
 menu_options(_, GameConfig) :- 
     % Handle invalid menu choices
@@ -155,3 +164,21 @@ validate_pawn_number(1). % 1 pawn per player
 validate_pawn_number(2). % 2 pawns per player
 validate_pawn_number(_) :-
     write('Invalid Input! Please enter "1." or "2."'), nl, fail.
+
+% ===================== Predefined States =====================
+% Load predefined game states for testing and debugging.
+predefined_states(1) :-
+    % Middle Game State
+    write('Loading Middle Game State...'), nl,
+    middle_state(GameState),
+    game_loop(GameState).
+
+predefined_states(2) :-
+    % End Game State
+    write('Loading End Game State...'), nl,
+    end_state(GameState),
+    game_loop(GameState).
+
+predefined_states(_) :-
+    write('Invalid Choice! Please select 1 or 2.'), nl,
+    main_menu(_).
