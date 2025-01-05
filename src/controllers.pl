@@ -692,8 +692,29 @@ player_can_move(game_state(Board, (Player-PlayerName), _, PlayersPositions)) :-
         CombinedMoves
     ),
     append(CombinedMoves, FlatList),
-    FlatList \= []. % At least one pawn must have valid moves
+    FlatList \= [], % At least one pawn must have valid moves
 
+    length(Board, BoardLength),
+
+    findall(
+        (X, Y),
+        (between(1, BoardLength, X), between(1, BoardLength, Y)),
+        AllPositions
+    ),
+
+    findall(
+        Height-(X,Y),
+        (
+            member((X, Y), AllPositions),
+            get_height(Board, (X, Y), Height),
+            \+ is_occupied((X, Y), PlayersPositions),
+            Height > 0
+        ),
+        ValidPositions
+    ),
+
+    length(ValidPositions, Result),
+    Result >= 3.
 
 
 write_game_results(Winner) :-
