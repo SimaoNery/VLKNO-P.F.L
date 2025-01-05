@@ -25,7 +25,7 @@ game_loop(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosi
     choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), CurrentPlayer, SelectedPawn, Move),
 
     % Apply the move if valid, resulting in a new game state
-    move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, Move, NewGameState),
+    move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn-Move, NewGameState),
 
     % Continue the loop with the updated game state
     game_loop(NewGameState).
@@ -210,7 +210,7 @@ pawn_list(Gamestate, PlayerName, PlayersPositions, Pawns) :-
         (X, Y), 
         (
             member(PlayerName-(X, Y), PlayersPositions),  % Find the player's positions
-            valid_moves(Gamestate, (X, Y), ValidMoves),    % Get valid moves for the position
+            valid_moves(Gamestate-(X, Y), ValidMoves),    % Get valid moves for the position
             ValidMoves \= []  % Only include pawns with valid moves
         ),
         Pawns
@@ -233,16 +233,15 @@ select_pawn_from_list(Pawns, SelectedPawn) :-
     read(Index),  % Get the player's input for the pawn index
     nth1(Index, Pawns, SelectedPawn).  % Select the pawn based on index
 
-% move/4
+% move/3
 % Changes the game state according to the player's move.
 % It validates the selected move, executes the move, and then switches players.
 move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions),
-    SelectedPawn,
-    Move,
+    SelectedPawn-Move,
     game_state(NewBoard, NextPlayer, PlayersInfo, NewPlayersPositions)) :- 
 
     % Validate the Move
-    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, ValidMoves),
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, ValidMoves),
     member(Move, ValidMoves),  % Ensure the move is valid
 
     % Execute the Move
@@ -468,10 +467,10 @@ pick_and_place_stone(Board, 2, (CurrentPlayer-PlayerName), PlayersInfo, CurrentP
 
 % --- Auxiliary Move Predicates ---------------------------------------------------------------------
 
-% valid_moves/3:
+% valid_moves/2:
 % Creates a list of all valid moves for the selected pawn.
 % It checks all possible moves and filters out the ones that are invalid.
-valid_moves(game_state(Board, (_-_), _, PlayersPositions), SelectedPawn, ValidMoves) :-
+valid_moves(game_state(Board, (_-_), _, PlayersPositions)-SelectedPawn, ValidMoves) :-
     findall(
         Move,
         (
@@ -745,7 +744,7 @@ switch_players((CurrentPlayer-CurrentName), [Player1Type-Player1Name, CurrentPla
 % - The player is asked to input their move from the available options.
 choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), 0, SelectedPawn, Move) :-
     select_pawn(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, SelectedPawn),
-    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, ValidMoves),
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, ValidMoves),
     write('These are your valid moves => '), write(ValidMoves), nl, nl,
     write('Choose your move: '), read(Move), nl, nl.
 
@@ -756,7 +755,7 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
     write('AI thinking...'), nl,
     pawn_list(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), PlayerName, PlayersPositions, Pawns),
     random_member(SelectedPawn, Pawns),
-    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), SelectedPawn, ValidMoves),
+    valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-SelectedPawn, ValidMoves),
     random_member(Move, ValidMoves),
     write('AI chose: '), write(Move), write(' for pawn in ('), write(SelectedPawn), write(')'), nl.
 
@@ -772,7 +771,7 @@ choose_move(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPo
     findall(Value-Move-Pawn,
             (
                 member(Pawn, Pawns),
-                valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Pawn, ValidMoves),
+                valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-Pawn, ValidMoves),
                 member(Move, ValidMoves),
                 translate_move(Move, Pawn, FinalPosition),
                 update_piece_coordinates((CurrentPlayer-PlayerName), Pawn, FinalPosition, PlayersPositions, NewPlayersPositions),
@@ -809,7 +808,7 @@ value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosition
         TempValue,
         (
             member(Pawn, Pawns),
-            valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions), Pawn, ValidMoves),
+            valid_moves(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPositions)-Pawn, ValidMoves),
             length(ValidMoves, TempValue)
         ),
         Values
@@ -826,7 +825,7 @@ value(game_state(Board, (CurrentPlayer-PlayerName), PlayersInfo, PlayersPosition
         TempValue,
         (
             member(Pawn, Pawns),
-            valid_moves(game_state(Board, (NextPlayer-NextPlayerName), PlayersInfo, PlayersPositions), Pawn, ValidMoves),
+            valid_moves(game_state(Board, (NextPlayer-NextPlayerName), PlayersInfo, PlayersPositions)-Pawn, ValidMoves),
             length(ValidMoves, TempValue)
         ),
         Values
@@ -862,7 +861,7 @@ player_can_move(game_state(Board, (Player-PlayerName), _, PlayersPositions)) :-
         Moves,
         (
             member(PlayerName-(X, Y), PlayersPositions), % Locate a pawn for the player
-            valid_moves(game_state(Board, (Player-PlayerName), _, PlayersPositions), (X, Y), Moves) % Get valid moves for this pawn
+            valid_moves(game_state(Board, (Player-PlayerName), _, PlayersPositions)-(X, Y), Moves) % Get valid moves for this pawn
         ),
         CombinedMoves
     ),
