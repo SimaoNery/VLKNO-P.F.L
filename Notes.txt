@@ -1,3 +1,0 @@
-To run the code:
-    -> consult('game.pl').
-    -> play.
